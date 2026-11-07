@@ -166,7 +166,13 @@ public sealed class MainForm : Form
         catch (Exception ex) { ShowError(ex); }
     }
 
-    private static string CsvEscape(string value) => "\"" + value.Replace("\"", "\"\"") + "\"";
+    private static string CsvEscape(string value)
+    {
+        value ??= "";
+        if (value.Length > 0 && (value[0] is '=' or '+' or '-' or '@' or '\\t' or '\\r'))
+            value = "'" + value;
+        return "\"" + value.Replace("\"", "\"\"") + "\"";
+    }
 
     private void ShowError(Exception ex) => MessageBox.Show(ex.Message, _hebrew ? "שגיאה" : "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 }
