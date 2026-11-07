@@ -184,7 +184,15 @@ public sealed class StartupManager
                     }
                     catch (Exception ex) { result.Add("Registry restore error: " + ex.Message); }
         }
-        foreach (var meta in Directory.EnumerateFiles(_backupRoot, "*.json"))
+        string[] metadataFiles;
+        try { metadataFiles = Directory.EnumerateFiles(_backupRoot, "*.json").ToArray(); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            result.Add("Could not read file backups: " + ex.Message);
+            return result;
+        }
+
+        foreach (var meta in metadataFiles)
             try
             {
                 var record = JsonSerializer.Deserialize<FileRecord>(File.ReadAllText(meta));
@@ -210,20 +218,45 @@ public sealed class StartupManager
 
     public void StopMatchingProcesses(StartupEntry entry)
     {
-        var name = Path.GetFileNameWithoutExtension(ExtractExecutable(entry.Command));
+        var expectedPath = entry.ExecutablePath ?? entry.FilePath ?? ExtractExecutable(entry.Command);
+        if (string.IsNullOrWhiteSpace(expectedPath))
+            throw new InvalidOperationException("The executable path could not be determined safely.");
+
+        expectedPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(expectedPath.Trim().Trim('"')));
+        var name = Path.GetFileNameWithoutExtension(expectedPath);
         if (string.IsNullOrWhiteSpace(name)) return;
+
+        var matched = 0;
+        var unverifiable = 0;
         foreach (var process in Process.GetProcessesByName(name))
             using (process)
             {
                 try
                 {
+                    var runningPath = process.MainModule?.FileName;
+                    if (string.IsNullOrWhiteSpace(runningPath)) { unverifiable++; continue; }
+                    if (!string.Equals(Path.GetFullPath(runningPath), expectedPath, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    matched++;
                     process.CloseMainWindow();
                     if (!process.WaitForExit(3000))
-                        throw new InvalidOperationException("The application did not close after a graceful close request. It was left running to avoid losing work.");
+                        throw new InvalidOperationException("The matching application did not close after a graceful close request. It was left running to avoid losing work.");
                 }
                 catch (InvalidOperationException) { throw; }
-                catch (Exception ex) { throw new InvalidOperationException("Could not stop " + name + ": " + ex.Message, ex); }
+                catch (Exception ex)
+                {
+                    unverifiable++;
+                    if (matched > 0)
+                        throw new InvalidOperationException("A matching process could not be checked or closed safely: " + ex.Message, ex);
+                }
             }
+
+        if (matched == 0)
+        {
+            var detail = unverifiable > 0 ? " Some processes could not be inspected due to Windows permissions." : "";
+            throw new InvalidOperationException("No running process with the exact executable path was found." + detail);
+        }
     }
 
     public int DisabledBackupCount()
