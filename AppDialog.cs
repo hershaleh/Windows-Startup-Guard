@@ -8,7 +8,7 @@ namespace WindowsStartupGuard;
 
 internal static class AppDialog
 {
-    private static readonly Brush Accent = new SolidColorBrush(Color.FromRgb(71, 120, 245));
+    private static readonly System.Windows.Media.Brush Accent = new SolidColorBrush(Color.FromRgb(71, 120, 245));
 
     public static bool Confirm(Window owner, string title, string message, bool dark)
     {
@@ -116,7 +116,7 @@ internal static class AppDialog
         TextWrapping = TextWrapping.Wrap, LineHeight = size * 1.75, Margin = new Thickness(0, 8, 0, 4)
     };
 
-    private static void AddSection(Panel parent, string heading, string body, bool dark)
+    private static void AddSection(System.Windows.Controls.Panel parent, string heading, string body, bool dark)
     {
         var card = new Border
         {
@@ -136,9 +136,9 @@ internal static class AppDialog
         parent.Children.Add(card);
     }
 
-    private static Button MakeButton(string text, bool primary)
+    private static System.Windows.Controls.Button MakeButton(string text, bool primary)
     {
-        var button = new Button
+        var button = new System.Windows.Controls.Button
         {
             Content = text, MinWidth = 104, Height = 40, Padding = new Thickness(20, 8, 20, 8),
             Margin = new Thickness(0, 0, 10, 0), BorderThickness = new Thickness(0),
@@ -153,5 +153,5 @@ internal static class AppDialog
         return button;
     }
 
-    private static Brush BrushColor(string value) => new SolidColorBrush((Color)ColorConverter.ConvertFromString(value));
+    private static System.Windows.Media.Brush BrushColor(string value) => new SolidColorBrush((Color)ColorConverter.ConvertFromString(value));
 }
