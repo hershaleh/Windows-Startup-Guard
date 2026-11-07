@@ -23,6 +23,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - name: Run regression checks
+        shell: pwsh
+        run: ./tests/StaticRegressionTests.ps1
       - name: Build Release
         run: dotnet build WindowsStartupGuard.csproj --configuration Release
       - name: Publish win-x64
