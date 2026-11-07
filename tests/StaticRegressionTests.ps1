@@ -90,6 +90,20 @@ Test-Contract 'Buttons use rounded regions' $form 'ApplyRoundedRegion(button, 12
 Test-Contract 'Buttons have hover feedback' $form 'FlatAppearance.MouseOverBackColor'
 Test-Contract 'Modern drawing smoothing' $form 'using System.Drawing.Drawing2D;'
 
+
+Test-Contract 'Report problem button' $form 'ReportProblem()'
+Test-Contract 'GitHub issue report link' (Get-Content (Join-Path $PSScriptRoot '..\ErrorReporter.cs') -Raw) 'github.com/hershaleh/Windows-Startup-Guard/issues/new'
+Test-Contract 'Error log stores exception details' (Get-Content (Join-Path $PSScriptRoot '..\ErrorReporter.cs') -Raw) 'exception.ToString()'
+Test-Contract 'Report log redacts secrets' (Get-Content (Join-Path $PSScriptRoot '..\ErrorReporter.cs') -Raw) '[redacted]'
+Test-Contract 'Report requires user confirmation on GitHub' (Get-Content (Join-Path $PSScriptRoot '..\ErrorReporter.cs') -Raw) 'Nothing is sent until you click Submit'
+Test-Contract 'Branded splash screen' (Get-Content (Join-Path $PSScriptRoot '..\SplashScreen.cs') -Raw) 'Windows Startup Guard'
+Test-Contract 'Splash screen shown on startup' (Get-Content (Join-Path $PSScriptRoot '..\Program.cs') -Raw) 'splash.ShowDialog()'
+Test-Contract 'Executable icon configured' $project '<ApplicationIcon>Assets\WindowsStartupGuard.ico</ApplicationIcon>'
+Test-Contract 'Icon generated before build' $project 'GenerateApplicationIcon'
+Test-Contract 'Icon generator script exists' (Get-Content (Join-Path $PSScriptRoot '..\tools\GenerateIcon.ps1') -Raw) 'WindowsStartupGuard.ico'
+Test-Contract 'Light theme enabled by default' $form 'private bool _lightTheme = true;'
+Test-Contract 'Dashboard cards use rounded corners' $form 'ApplyRoundedRegion(card, 16)'
+
 Write-Host "Regression checks passed: $passed"
 if ($failed.Count -gt 0) { Write-Host "Regression checks failed ($($failed.Count)):"; $failed | ForEach-Object { Write-Host " - $_" }; exit 1 }
 if ($passed -lt 45) { throw "Expected at least 45 regression checks; ran $passed." }
