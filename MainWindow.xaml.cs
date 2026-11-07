@@ -61,6 +61,7 @@ public partial class MainWindow : Window
 
     private static void AnimateButtons(DependencyObject parent)
     {
+        if (parent is not Visual) return;
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
         {
             var child = VisualTreeHelper.GetChild(parent, i);
