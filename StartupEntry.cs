@@ -12,6 +12,9 @@ public sealed class StartupEntry
     public required StartupScope Scope { get; init; }
     public required string Location { get; init; }
     public string? FilePath { get; init; }
+    public string? ExecutablePath { get; set; }
+    public string Publisher { get; set; } = "—";
+    public string FileVersion { get; set; } = "";
     public bool IsEnabled { get; init; } = true;
     public long MemoryMb { get; set; }
 }
