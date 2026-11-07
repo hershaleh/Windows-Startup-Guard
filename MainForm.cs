@@ -12,6 +12,14 @@ public sealed class MainForm : Form
     private readonly Label _count = new();
     private readonly Label _ram = new();
     private readonly Label _backups = new();
+    private readonly Label _subtitle = new();
+    private readonly Label[] _cardHeadings = [new(), new(), new()];
+    private readonly Label[] _cardDetails = [new(), new(), new()];
+    private readonly Button _refreshButton = new();
+    private readonly Button _disableButton = new();
+    private readonly Button _stopButton = new();
+    private readonly Button _restoreButton = new();
+    private readonly Button _exportButton = new();
     private bool _hebrew = true;
     private List<StartupEntry> _entries = [];
     private readonly Color _background = Color.FromArgb(17, 24, 39);
@@ -33,28 +41,29 @@ public sealed class MainForm : Form
 
         var header = new Panel { Dock = DockStyle.Fill, BackColor = _background };
         var title = new Label { Text = "Startup Guard", Font = new Font("Segoe UI Semibold", 25, FontStyle.Bold), ForeColor = Color.White, AutoSize = true, Location = new Point(0, 0) };
-        var subtitle = new Label { Text = "Take control of what starts with Windows", ForeColor = Color.FromArgb(156, 163, 175), AutoSize = true, Location = new Point(3, 49) };
+        _subtitle.Text = "Take control of what starts with Windows"; _subtitle.ForeColor = Color.FromArgb(156, 163, 175); _subtitle.AutoSize = true; _subtitle.Location = new Point(3, 49);
         var language = MakeButton("עברית / EN", false, (_, _) => { _hebrew = !_hebrew; ApplyLanguage(); });
         language.Size = new Size(112, 36); language.Anchor = AnchorStyles.Top | AnchorStyles.Right; language.Location = new Point(900, 10);
-        header.Controls.AddRange([title, subtitle, language]); header.Resize += (_, _) => language.Left = header.ClientSize.Width - language.Width;
+        header.Controls.AddRange([title, _subtitle, language]); header.Resize += (_, _) => language.Left = header.ClientSize.Width - language.Width;
         root.Controls.Add(header, 0, 0);
 
         var cards = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, BackColor = _background };
         for (var i = 0; i < 3; i++) cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
-        cards.Controls.Add(MakeCard("STARTUP ITEMS", _count, "Run, RunOnce and Startup folders"), 0, 0);
-        cards.Controls.Add(MakeCard("MATCHED RAM", _ram, "Working set of matching processes"), 1, 0);
-        cards.Controls.Add(MakeCard("SAFE BACKUPS", _backups, "Items that can be restored"), 2, 0);
+        cards.Controls.Add(MakeCard("STARTUP ITEMS", _count, "Run, RunOnce and Startup folders", 0), 0, 0);
+        cards.Controls.Add(MakeCard("MATCHED RAM", _ram, "Working set of matching processes", 1), 1, 0);
+        cards.Controls.Add(MakeCard("SAFE BACKUPS", _backups, "Items that can be restored", 2), 2, 0);
         root.Controls.Add(cards, 0, 1);
 
         var toolbar = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, BackColor = _background, Padding = new Padding(0, 8, 0, 0) };
         _search.Width = 210; _search.Height = 34; _search.PlaceholderText = "Search apps or commands"; _search.BackColor = _surface; _search.ForeColor = Color.White; _search.BorderStyle = BorderStyle.FixedSingle; _search.TextChanged += (_, _) => RenderRows();
         _filter.DropDownStyle = ComboBoxStyle.DropDownList; _filter.Width = 125; _filter.BackColor = _surface; _filter.ForeColor = Color.White; _filter.SelectedIndexChanged += (_, _) => RenderRows();
         toolbar.Controls.Add(_search); toolbar.Controls.Add(_filter);
-        toolbar.Controls.Add(MakeButton("↻  Refresh", false, (_, _) => RefreshEntries()));
-        toolbar.Controls.Add(MakeButton("⏸  Disable selected", true, (_, _) => DisableSelected()));
-        toolbar.Controls.Add(MakeButton("■  Stop process", false, (_, _) => StopSelected()));
-        toolbar.Controls.Add(MakeButton("↶  Restore backups", false, (_, _) => RestoreBackups()));
-        toolbar.Controls.Add(MakeButton("⇩ Export CSV", false, (_, _) => ExportCsv()));
+        ConfigureButton(_refreshButton, "↻  Refresh", false, (_, _) => RefreshEntries());
+        ConfigureButton(_disableButton, "⏸  Disable selected", true, (_, _) => DisableSelected());
+        ConfigureButton(_stopButton, "■  Stop process", false, (_, _) => StopSelected());
+        ConfigureButton(_restoreButton, "↶  Restore backups", false, (_, _) => RestoreBackups());
+        ConfigureButton(_exportButton, "⇩ Export CSV", false, (_, _) => ExportCsv());
+        toolbar.Controls.AddRange([_refreshButton, _disableButton, _stopButton, _restoreButton, _exportButton]);
         root.Controls.Add(toolbar, 0, 2);
 
         _grid.Dock = DockStyle.Fill; _grid.BackgroundColor = _surface; _grid.BorderStyle = BorderStyle.None; _grid.EnableHeadersVisualStyles = false;
@@ -75,29 +84,50 @@ public sealed class MainForm : Form
         status.Items.Add(_status); Controls.Add(status);
     }
 
-    private Panel MakeCard(string heading, Label value, string detail)
+    private Panel MakeCard(string heading, Label value, string detail, int index)
     {
         var card = new Panel { Dock = DockStyle.Fill, BackColor = _surface, Margin = new Padding(0, 0, 12, 0), Padding = new Padding(14) };
         var h = new Label { Text = heading, ForeColor = Color.FromArgb(156, 163, 175), Font = new Font("Segoe UI Semibold", 8, FontStyle.Bold), Location = new Point(14, 10), AutoSize = true };
+        _cardHeadings[index] = h;
         value.Text = "—"; value.ForeColor = Color.White; value.Font = new Font("Segoe UI Semibold", 22, FontStyle.Bold); value.Location = new Point(14, 30); value.AutoSize = true;
         var d = new Label { Text = detail, ForeColor = Color.FromArgb(156, 163, 175), Font = new Font("Segoe UI", 8), Location = new Point(92, 47), AutoSize = true };
+        _cardDetails[index] = d;
         card.Controls.AddRange([h, value, d]); return card;
     }
 
-    private Button MakeButton(string text, bool primary, EventHandler click)
+    private void ConfigureButton(Button button, string text, bool primary, EventHandler click)
     {
-        var button = new Button { Text = text, Size = new Size(primary ? 164 : 136, 36), Margin = new Padding(7, 0, 0, 0), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand };
+        button.Text = text; button.Size = new Size(primary ? 164 : 136, 36); button.Margin = new Padding(7, 0, 0, 0);
+        button.FlatStyle = FlatStyle.Flat; button.Cursor = Cursors.Hand;
         button.FlatAppearance.BorderSize = primary ? 0 : 1; button.FlatAppearance.BorderColor = Color.FromArgb(75, 85, 99);
-        button.BackColor = primary ? _blue : _surface; button.ForeColor = Color.White; button.Font = new Font("Segoe UI Semibold", 9, FontStyle.Bold); button.Click += click;
-        return button;
+        button.BackColor = primary ? _blue : _surface; button.ForeColor = Color.White; button.Font = new Font("Segoe UI Semibold", 9, FontStyle.Bold);
+        button.Click += click;
     }
 
     private void ApplyLanguage()
     {
         RightToLeft = _hebrew ? RightToLeft.Yes : RightToLeft.No; RightToLeftLayout = _hebrew;
+        Text = _hebrew ? "מגן אתחול Windows" : "Windows Startup Guard";
+        _subtitle.Text = _hebrew ? "שליטה בתוכנות המופעלות עם Windows" : "Take control of what starts with Windows";
         _search.PlaceholderText = _hebrew ? "חיפוש תוכנה או פקודה..." : "Search apps or commands";
         var selected = _filter.SelectedIndex; _filter.Items.Clear(); _filter.Items.AddRange(_hebrew ? ["הכול", "המשתמש הנוכחי", "כל המשתמשים"] : ["All items", "Current user", "All users"]);
-        _filter.SelectedIndex = selected < 0 ? 0 : selected; _status.Text = _hebrew ? "מוכן" : "Ready";
+        _filter.SelectedIndex = selected < 0 ? 0 : selected;
+        _cardHeadings[0].Text = _hebrew ? "פריטי אתחול" : "STARTUP ITEMS";
+        _cardHeadings[1].Text = _hebrew ? "זיכרון משוער" : "MATCHED RAM";
+        _cardHeadings[2].Text = _hebrew ? "גיבויים בטוחים" : "SAFE BACKUPS";
+        _cardDetails[0].Text = _hebrew ? "רישום ותיקיות אתחול" : "Run, RunOnce and Startup folders";
+        _cardDetails[1].Text = _hebrew ? "זיכרון תהליכים תואמים" : "Working set of matching processes";
+        _cardDetails[2].Text = _hebrew ? "פריטים שניתן לשחזר" : "Items that can be restored";
+        _refreshButton.Text = _hebrew ? "↻  רענון" : "↻  Refresh";
+        _disableButton.Text = _hebrew ? "⏸  נטרול נבחרים" : "⏸  Disable selected";
+        _stopButton.Text = _hebrew ? "■  סגירת תהליך" : "■  Stop process";
+        _restoreButton.Text = _hebrew ? "↶  שחזור גיבויים" : "↶  Restore backups";
+        _exportButton.Text = _hebrew ? "⇩ ייצוא CSV" : "⇩ Export CSV";
+        string[] headers = _hebrew
+            ? ["תוכנה", "מפרסם", "מצב", "זיכרון (MB)", "מקור", "היקף", "גרסה", "נתיב קובץ", "פקודת אתחול"]
+            : ["Application", "Publisher", "Status", "RAM (MB)", "Source", "Scope", "Version", "Executable path", "Startup command"];
+        for (var i = 0; i < headers.Length; i++) _grid.Columns[i].HeaderText = headers[i];
+        _status.Text = _hebrew ? "מוכן" : "Ready";
     }
 
     private void RefreshEntries()
@@ -113,7 +143,8 @@ public sealed class MainForm : Form
             (filter == 0 || (filter == 1 && x.Scope == StartupScope.CurrentUser) || (filter == 2 && x.Scope == StartupScope.AllUsers))))
         {
             var rowIndex = _grid.Rows.Add(item.Name, item.Publisher, _hebrew ? "מופעל" : "Enabled", item.MemoryMb,
-                item.Source == StartupSource.Registry ? "Registry" : "Startup folder", item.Scope == StartupScope.AllUsers ? "All users" : "Current user",
+                item.Source == StartupSource.Registry ? (_hebrew ? "רישום מערכת" : "Registry") : (_hebrew ? "תיקיית אתחול" : "Startup folder"),
+                item.Scope == StartupScope.AllUsers ? (_hebrew ? "כל המשתמשים" : "All users") : (_hebrew ? "המשתמש הנוכחי" : "Current user"),
                 item.FileVersion, item.ExecutablePath ?? "—", item.Command);
             _grid.Rows[rowIndex].Tag = item;
         }
