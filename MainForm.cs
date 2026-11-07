@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Principal;
 
 namespace WindowsStartupGuard;
 
@@ -9,6 +10,7 @@ public sealed class MainForm : Form
     private readonly TextBox _search = new();
     private readonly ComboBox _filter = new();
     private readonly ToolStripStatusLabel _status = new();
+    private readonly ToolStripStatusLabel _privilegeStatus = new();
     private readonly Label _count = new();
     private readonly Label _ram = new();
     private readonly Label _backups = new();
@@ -81,7 +83,8 @@ public sealed class MainForm : Form
         root.Controls.Add(_grid, 0, 3);
 
         var status = new StatusStrip { BackColor = _background, ForeColor = Color.Silver, Dock = DockStyle.Bottom };
-        status.Items.Add(_status); Controls.Add(status);
+        status.Items.Add(_status); status.Items.Add(new ToolStripStatusLabel { Spring = true });
+        status.Items.Add(_privilegeStatus); Controls.Add(status);
     }
 
     private Panel MakeCard(string heading, Label value, string detail, int index)
@@ -135,6 +138,11 @@ public sealed class MainForm : Form
             : ["Application", "Publisher", "Status", "RAM (MB)", "Source", "Scope", "Version", "Executable path", "Startup command"];
         for (var i = 0; i < headers.Length; i++) _grid.Columns[i].HeaderText = headers[i];
         _status.Text = _hebrew ? "מוכן" : "Ready";
+        var isAdministrator = false;
+        try { isAdministrator = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator); } catch { }
+        _privilegeStatus.Text = isAdministrator
+            ? (_hebrew ? "הרשאות מנהל" : "Administrator")
+            : (_hebrew ? "משתמש רגיל — שינוי פריטי כל המשתמשים עשוי לדרוש מנהל" : "Standard user — changing all-user items may require admin");
     }
 
     private void RefreshEntries()
