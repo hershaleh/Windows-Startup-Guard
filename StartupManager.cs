@@ -287,14 +287,14 @@ public sealed class StartupManager
 
         string[] allowed =
         [
-            @"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
-            @"Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
-            @"Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run",
-            @"Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnce"
+            @"Software\Microsoft\Windows\CurrentVersion\Run",
+            @"Software\Microsoft\Windows\CurrentVersion\RunOnce",
+            @"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Run",
+            @"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\RunOnce"
         ];
         return allowed.Contains(path, StringComparer.OrdinalIgnoreCase) &&
                !(hive.Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) &&
-                 path.StartsWith(@"Software\\WOW6432Node", StringComparison.OrdinalIgnoreCase));
+                 path.StartsWith(@"Software\WOW6432Node", StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsAllowedStartupFolderPath(string path)
