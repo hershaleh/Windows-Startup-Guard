@@ -11,7 +11,7 @@ A free, open-source Windows desktop utility for discovering and managing common 
 - Search by application name, publisher, or startup command.
 - Filter inventory by current user or all users.
 - Publisher/company name and file-version metadata when the executable is available.
-- Export the currently displayed inventory to UTF-8 CSV.
+- Export the currently displayed inventory, including disabled items and their status, to UTF-8 CSV.
 - Best-effort RAM estimate for matching running processes (shared process memory is counted once per executable name in the dashboard total).
 - Disable selected entries with a local backup.
 - View disabled items in the inventory and restore only selected backups, or restore all backups.
@@ -40,7 +40,6 @@ dotnet run --project WindowsStartupGuard.csproj
 ## Planned
 
 - Add scheduled tasks and service inventory in a read-only advanced view.
-- Scheduled tasks and service inventory in a read-only advanced view.
 - Publisher and digital-signature information.
 - Startup impact history and launch-delay measurements.
 - Optional logon-time re-check (opt-in only).
