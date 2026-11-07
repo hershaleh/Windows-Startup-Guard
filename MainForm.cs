@@ -41,19 +41,20 @@ public sealed class MainForm : Form
 
         var cards = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, BackColor = _background };
         for (var i = 0; i < 3; i++) cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
-        cards.Controls.Add(MakeCard("STARTUP ITEMS", _count, "Detected in common startup locations"), 0, 0);
+        cards.Controls.Add(MakeCard("STARTUP ITEMS", _count, "Run, RunOnce and Startup folders"), 0, 0);
         cards.Controls.Add(MakeCard("MATCHED RAM", _ram, "Working set of matching processes"), 1, 0);
         cards.Controls.Add(MakeCard("SAFE BACKUPS", _backups, "Items that can be restored"), 2, 0);
         root.Controls.Add(cards, 0, 1);
 
         var toolbar = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, BackColor = _background, Padding = new Padding(0, 8, 0, 0) };
-        _search.Width = 245; _search.Height = 34; _search.PlaceholderText = "Search apps or commands"; _search.BackColor = _surface; _search.ForeColor = Color.White; _search.BorderStyle = BorderStyle.FixedSingle; _search.TextChanged += (_, _) => RenderRows();
+        _search.Width = 210; _search.Height = 34; _search.PlaceholderText = "Search apps or commands"; _search.BackColor = _surface; _search.ForeColor = Color.White; _search.BorderStyle = BorderStyle.FixedSingle; _search.TextChanged += (_, _) => RenderRows();
         _filter.DropDownStyle = ComboBoxStyle.DropDownList; _filter.Width = 125; _filter.BackColor = _surface; _filter.ForeColor = Color.White; _filter.SelectedIndexChanged += (_, _) => RenderRows();
         toolbar.Controls.Add(_search); toolbar.Controls.Add(_filter);
         toolbar.Controls.Add(MakeButton("↻  Refresh", false, (_, _) => RefreshEntries()));
         toolbar.Controls.Add(MakeButton("⏸  Disable selected", true, (_, _) => DisableSelected()));
         toolbar.Controls.Add(MakeButton("■  Stop process", false, (_, _) => StopSelected()));
         toolbar.Controls.Add(MakeButton("↶  Restore backups", false, (_, _) => RestoreBackups()));
+        toolbar.Controls.Add(MakeButton("⇩ Export CSV", false, (_, _) => ExportCsv()));
         root.Controls.Add(toolbar, 0, 2);
 
         _grid.Dock = DockStyle.Fill; _grid.BackgroundColor = _surface; _grid.BorderStyle = BorderStyle.None; _grid.EnableHeadersVisualStyles = false;
@@ -64,9 +65,10 @@ public sealed class MainForm : Form
         _grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(36, 47, 63); _grid.RowHeadersVisible = false;
         _grid.AllowUserToAddRows = false; _grid.AllowUserToDeleteRows = false; _grid.ReadOnly = true; _grid.MultiSelect = true;
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect; _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        _grid.Columns.Add("Name", "Application"); _grid.Columns.Add("Status", "Status"); _grid.Columns.Add("Memory", "RAM (MB)");
-        _grid.Columns.Add("Source", "Source"); _grid.Columns.Add("Scope", "Scope"); _grid.Columns.Add("Command", "Command");
-        _grid.Columns[0].FillWeight = 110; _grid.Columns[5].FillWeight = 190;
+        _grid.Columns.Add("Name", "Application"); _grid.Columns.Add("Publisher", "Publisher"); _grid.Columns.Add("Status", "Status");
+        _grid.Columns.Add("Memory", "RAM (MB)"); _grid.Columns.Add("Source", "Source"); _grid.Columns.Add("Scope", "Scope");
+        _grid.Columns.Add("Version", "Version"); _grid.Columns.Add("Executable", "Executable path"); _grid.Columns.Add("Command", "Startup command");
+        _grid.Columns[0].FillWeight = 95; _grid.Columns[1].FillWeight = 105; _grid.Columns[7].FillWeight = 150; _grid.Columns[8].FillWeight = 170;
         root.Controls.Add(_grid, 0, 3);
 
         var status = new StatusStrip { BackColor = _background, ForeColor = Color.Silver, Dock = DockStyle.Bottom };
@@ -94,7 +96,7 @@ public sealed class MainForm : Form
     {
         RightToLeft = _hebrew ? RightToLeft.Yes : RightToLeft.No; RightToLeftLayout = _hebrew;
         _search.PlaceholderText = _hebrew ? "חיפוש תוכנה או פקודה..." : "Search apps or commands";
-        var selected = _filter.SelectedIndex; _filter.Items.Clear(); _filter.Items.AddRange(_hebrew ? ["הכול", "מופעלות"] : ["All items", "Enabled"]);
+        var selected = _filter.SelectedIndex; _filter.Items.Clear(); _filter.Items.AddRange(_hebrew ? ["הכול", "המשתמש הנוכחי", "כל המשתמשים"] : ["All items", "Current user", "All users"]);
         _filter.SelectedIndex = selected < 0 ? 0 : selected; _status.Text = _hebrew ? "מוכן" : "Ready";
     }
 
@@ -107,10 +109,12 @@ public sealed class MainForm : Form
     private void RenderRows()
     {
         _grid.Rows.Clear(); var query = _search.Text.Trim(); var filter = _filter.SelectedIndex;
-        foreach (var item in _entries.Where(x => (query.Length == 0 || x.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || x.Command.Contains(query, StringComparison.OrdinalIgnoreCase))))
+        foreach (var item in _entries.Where(x => (query.Length == 0 || x.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || x.Command.Contains(query, StringComparison.OrdinalIgnoreCase) || x.Publisher.Contains(query, StringComparison.OrdinalIgnoreCase)) &&
+            (filter == 0 || (filter == 1 && x.Scope == StartupScope.CurrentUser) || (filter == 2 && x.Scope == StartupScope.AllUsers)))
         {
-            var rowIndex = _grid.Rows.Add(item.Name, _hebrew ? "מופעל" : "Enabled", item.MemoryMb,
-                item.Source == StartupSource.Registry ? "Registry" : "Startup folder", item.Scope == StartupScope.AllUsers ? "All users" : "Current user", item.Command);
+            var rowIndex = _grid.Rows.Add(item.Name, item.Publisher, _hebrew ? "מופעל" : "Enabled", item.MemoryMb,
+                item.Source == StartupSource.Registry ? "Registry" : "Startup folder", item.Scope == StartupScope.AllUsers ? "All users" : "Current user",
+                item.FileVersion, item.ExecutablePath ?? "—", item.Command);
             _grid.Rows[rowIndex].Tag = item;
         }
         if (filter == 1 || filter == 2)
@@ -148,6 +152,23 @@ public sealed class MainForm : Form
         var results = _manager.RestoreAll(); RefreshEntries();
         MessageBox.Show(results.Count == 0 ? (_hebrew ? "לא נמצאו גיבויים." : "No backups found.") : string.Join(Environment.NewLine, results.Take(20)), _hebrew ? "תוצאות שחזור" : "Restore results");
     }
+
+    private void ExportCsv()
+    {
+        using var dialog = new SaveFileDialog { Filter = "CSV files (*.csv)|*.csv", FileName = "startup-inventory.csv", Title = _hebrew ? "ייצוא רשימת אתחול" : "Export startup inventory" };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        try
+        {
+            var visible = _grid.Rows.Cast<DataGridViewRow>().Select(r => r.Tag).OfType<StartupEntry>().ToList();
+            var lines = new List<string> { "Name,Publisher,Scope,Source,MemoryMB,FileVersion,ExecutablePath,Command" };
+            lines.AddRange(visible.Select(x => string.Join(",", new[] { x.Name, x.Publisher, x.Scope.ToString(), x.Source.ToString(), x.MemoryMb.ToString(), x.FileVersion, x.ExecutablePath ?? "", x.Command }.Select(CsvEscape))));
+            File.WriteAllText(dialog.FileName, string.Join(Environment.NewLine, lines), new System.Text.UTF8Encoding(true));
+            _status.Text = _hebrew ? "הייצוא הושלם" : "CSV export completed";
+        }
+        catch (Exception ex) { ShowError(ex); }
+    }
+
+    private static string CsvEscape(string value) => "\"" + value.Replace("\"", "\"\"") + "\"";
 
     private void ShowError(Exception ex) => MessageBox.Show(ex.Message, _hebrew ? "שגיאה" : "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 }
