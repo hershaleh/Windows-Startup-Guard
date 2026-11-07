@@ -116,7 +116,7 @@ public sealed class MainForm : Form
 
     private Panel MakeCard(string heading, Label value, string detail, int index)
     {
-        var card = new Panel { Dock = DockStyle.Fill, BackColor = _surface, Margin = new Padding(0, 0, 12, 0), Padding = new Padding(14) };
+        var card = new Panel { Name = "SummaryCard", Dock = DockStyle.Fill, BackColor = _surface, Margin = new Padding(0, 0, 12, 0), Padding = new Padding(14) };
         var h = new Label { Text = heading, ForeColor = Color.FromArgb(156, 163, 175), Font = new Font("Segoe UI Semibold", 8, FontStyle.Bold), Location = new Point(14, 10), AutoSize = true };
         _cardHeadings[index] = h;
         value.Text = "—"; value.ForeColor = Color.White; value.Font = new Font("Segoe UI Semibold", 22, FontStyle.Bold); value.Location = new Point(14, 30); value.AutoSize = true;
@@ -213,8 +213,9 @@ public sealed class MainForm : Form
             else if (control is Button) { control.BackColor = _surface; control.ForeColor = _textColor; }
             else if (control is TextBoxBase || control is ComboBox) { control.BackColor = _surface; control.ForeColor = _textColor; }
             else if (control is Label) control.ForeColor = control == _subtitle || _cardDetails.Contains(control) || _cardHeadings.Contains(control) ? _mutedColor : _textColor;
-            else if (control is Panel panel && panel == _creditPanel) panel.BackColor = _surface;
+            else if (control is Panel panel && (panel == _creditPanel || panel.Name == "SummaryCard")) panel.BackColor = _surface;
             else if (control is Panel || control is TableLayoutPanel || control is FlowLayoutPanel) control.BackColor = _background;
+            else if (control is StatusStrip strip) { strip.BackColor = _background; strip.ForeColor = _mutedColor; }
         }
         _grid.BackgroundColor = _surface;
         _grid.ColumnHeadersDefaultCellStyle.BackColor = _lightTheme ? Color.FromArgb(226, 232, 240) : Color.FromArgb(55, 65, 81);
