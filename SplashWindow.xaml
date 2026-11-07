@@ -8,7 +8,7 @@
   <DoubleAnimation Storyboard.TargetName="LogoScale" Storyboard.TargetProperty="ScaleY" From=".55" To="1" Duration="0:0:0.8"><DoubleAnimation.EasingFunction><BackEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
   <DoubleAnimation Storyboard.TargetName="Glow" Storyboard.TargetProperty="Opacity" From="0" To=".65" Duration="0:0:1.2" AutoReverse="True" RepeatBehavior="Forever"/>
   <DoubleAnimation Storyboard.TargetName="Loading" Storyboard.TargetProperty="Width" From="10" To="430" Duration="0:0:1.7"/>
-  <DoubleAnimation Storyboard.TargetName="Title" Storyboard.TargetProperty="Opacity" From="0" To="1" BeginTime="0:0:0.35" Duration="0:0:0.65"/>
+  <DoubleAnimation Storyboard.TargetName="TitleText" Storyboard.TargetProperty="Opacity" From="0" To="1" BeginTime="0:0:0.35" Duration="0:0:0.65"/>
   <DoubleAnimation Storyboard.TargetName="Subtitle" Storyboard.TargetProperty="Opacity" From="0" To="1" BeginTime="0:0:0.65" Duration="0:0:0.65"/>
  </Storyboard></BeginStoryboard></EventTrigger></Window.Triggers>
  <Border CornerRadius="26" ClipToBounds="True" BorderBrush="#638CCB" BorderThickness="1">
@@ -23,7 +23,7 @@
       <TextBlock Text="✓" FontSize="64" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
      </Border>
     </Grid>
-    <TextBlock x:Name="Title" Text="Windows Startup Guard" FontSize="29" FontWeight="Bold" Foreground="White" Opacity="0" HorizontalAlignment="Center"/>
+    <TextBlock x:Name="TitleText" Text="Windows Startup Guard" FontSize="29" FontWeight="Bold" Foreground="White" Opacity="0" HorizontalAlignment="Center"/>
     <TextBlock x:Name="Subtitle" Text="שליטה בטוחה. הפעלה חכמה. שקט נפשי." FontSize="15" Foreground="#B7C9EB" Opacity="0" Margin="0,12,0,30" HorizontalAlignment="Center"/>
     <Border Width="430" Height="5" Background="#33476D" CornerRadius="3"><Border x:Name="Loading" Width="10" HorizontalAlignment="Right" Background="#75A2FF" CornerRadius="3"/></Border>
     <TextBlock Text="מכין את סביבת העבודה..." Foreground="#8096BD" FontSize="11" Margin="0,12,0,0" HorizontalAlignment="Center"/>
