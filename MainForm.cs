@@ -160,11 +160,17 @@ public sealed class MainForm : Form
 
     private void RenderRows()
     {
-        _grid.Rows.Clear(); var query = _search.Text.Trim(); var filter = _filter.SelectedIndex;
+        _grid.Rows.Clear();
+        var query = _search.Text.Trim();
+        var filter = _filter.SelectedIndex;
         var disabled = _manager.GetDisabledBackups();
-        var disabledRows = disabled.Select(x => new { x.Name, x.Command, x.Source, x.Scope, x.Publisher, x.FileVersion, x.ExecutablePath, x.MemoryMb, x.BackupId }).ToList();
-        foreach (var item in _entries.Where(x => (query.Length == 0 || x.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || x.Command.Contains(query, StringComparison.OrdinalIgnoreCase) || x.Publisher.Contains(query, StringComparison.OrdinalIgnoreCase)) &&
-            (filter == 0 || (filter == 1 && x.Scope == StartupScope.CurrentUser) || (filter == 2 && x.Scope == StartupScope.AllUsers))))
+
+        foreach (var item in _entries.Where(x =>
+            (query.Length == 0 || x.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+             x.Command.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+             x.Publisher.Contains(query, StringComparison.OrdinalIgnoreCase)) &&
+            (filter == 0 || (filter == 1 && x.Scope == StartupScope.CurrentUser) ||
+             (filter == 2 && x.Scope == StartupScope.AllUsers))))
         {
             var rowIndex = _grid.Rows.Add(item.Name, item.Publisher, _hebrew ? "מופעל" : "Enabled", item.MemoryMb,
                 item.Source == StartupSource.Registry ? (_hebrew ? "רישום מערכת" : "Registry") : (_hebrew ? "תיקיית אתחול" : "Startup folder"),
@@ -172,9 +178,14 @@ public sealed class MainForm : Form
                 item.FileVersion, item.ExecutablePath ?? "—", item.Command);
             _grid.Rows[rowIndex].Tag = item;
         }
-        foreach (var item in disabledRows.Where(x => query.Length == 0 || x.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || x.Command.Contains(query, StringComparison.OrdinalIgnoreCase)))
+
+        foreach (var item in disabled.Where(x =>
+            (query.Length == 0 || x.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+             x.Command.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+             x.Publisher.Contains(query, StringComparison.OrdinalIgnoreCase)) &&
+            (filter == 0 || (filter == 1 && x.Scope == StartupScope.CurrentUser) ||
+             (filter == 2 && x.Scope == StartupScope.AllUsers))))
         {
-            if (filter != 0 && ((filter == 1 && item.Scope != StartupScope.CurrentUser) || (filter == 2 && item.Scope != StartupScope.AllUsers))) continue;
             var index = _grid.Rows.Add(item.Name, item.Publisher, _hebrew ? "מושבת" : "Disabled", item.MemoryMb,
                 item.Source == StartupSource.Registry ? (_hebrew ? "רישום מערכת" : "Registry") : (_hebrew ? "תיקיית אתחול" : "Startup folder"),
                 item.Scope == StartupScope.AllUsers ? (_hebrew ? "כל המשתמשים" : "All users") : (_hebrew ? "המשתמש הנוכחי" : "Current user"),
@@ -261,9 +272,15 @@ public sealed class MainForm : Form
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         try
         {
-            var visible = _grid.Rows.Cast<DataGridViewRow>().Select(r => r.Tag).OfType<StartupEntry>().ToList();
-            var lines = new List<string> { "Name,Publisher,Scope,Source,MemoryMB,FileVersion,ExecutablePath,Command" };
-            lines.AddRange(visible.Select(x => string.Join(",", new[] { x.Name, x.Publisher, x.Scope.ToString(), x.Source.ToString(), x.MemoryMb.ToString(), x.FileVersion, x.ExecutablePath ?? "", x.Command }.Select(CsvEscape))));
+            var headers = new[] { "Name", "Publisher", "Status", "MemoryMB", "Scope", "Source", "FileVersion", "ExecutablePath", "Command" };
+            var lines = new List<string> { string.Join(",", headers.Select(CsvEscape)) };
+            foreach (DataGridViewRow row in _grid.Rows)
+            {
+                var values = new string[9];
+                for (var i = 0; i < values.Length; i++)
+                    values[i] = Convert.ToString(row.Cells[i].Value) ?? "";
+                lines.Add(string.Join(",", values.Select(CsvEscape)));
+            }
             File.WriteAllText(dialog.FileName, string.Join(Environment.NewLine, lines), new System.Text.UTF8Encoding(true));
             _status.Text = _hebrew ? "הייצוא הושלם" : "CSV export completed";
         }
