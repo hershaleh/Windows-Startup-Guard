@@ -121,7 +121,12 @@ public sealed class MainForm : Form
 
     private void UpdateCards()
     {
-        _count.Text = _entries.Count.ToString(); _ram.Text = _entries.Sum(x => x.MemoryMb).ToString() + " MB";
+        _count.Text = _entries.Count.ToString();
+        var ramTotal = _entries
+            .GroupBy(x => x.ExecutablePath ?? x.Command, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First().MemoryMb)
+            .Sum();
+        _ram.Text = ramTotal.ToString() + " MB";
         _backups.Text = _manager.DisabledBackupCount().ToString();
     }
 
@@ -169,7 +174,7 @@ public sealed class MainForm : Form
     private static string CsvEscape(string value)
     {
         value ??= "";
-        if (value.Length > 0 && (value[0] is '=' or '+' or '-' or '@' or '\\t' or '\\r'))
+        if (value.Length > 0 && (value[0] is '=' or '+' or '-' or '@' or '\t' or '\r'))
             value = "'" + value;
         return "\"" + value.Replace("\"", "\"\"") + "\"";
     }
