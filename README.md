@@ -14,13 +14,14 @@ A free, open-source Windows desktop utility for discovering and managing common 
 - Export the currently displayed inventory to UTF-8 CSV.
 - Best-effort RAM estimate for matching running processes (shared process memory is counted once per executable name in the dashboard total).
 - Disable selected entries with a local backup.
+- Clear status-bar indication when running as administrator or a standard user, including a note that all-user changes may require elevation.
 - Restore registry values and Startup folder files disabled by this app.
 - Optional process-close action with an explicit confirmation.
 - No silent cleanup, no automatic deletion, and no external services.
 
 ## Safety notes
 
-The first release intentionally limits its changes to common Run registry values and Startup folder items. It does not disable Windows services, drivers, scheduled tasks, security products, or system components. Disabling machine-wide registry entries may require administrator permissions. Backups are stored under `%LOCALAPPDATA%\\WindowsStartupGuard\\Backups` and in the current user's registry hive.
+The first release intentionally limits its changes to common Run registry values and Startup folder items. It does not disable Windows services, drivers, scheduled tasks, security products, or system components. The status bar indicates whether the app is running as administrator or a standard user. Disabling machine-wide registry entries may require administrator permissions; the app does not silently elevate itself. Backups are stored under `%LOCALAPPDATA%\\WindowsStartupGuard\\Backups` and in the current user's registry hive.
 
 Publisher information comes from executable version metadata; it is not digital-signature verification. CSV export includes the currently displayed rows. Registry backups preserve common string, expandable-string, DWORD, QWORD, and binary values.
 
