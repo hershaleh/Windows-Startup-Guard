@@ -1,0 +1,30 @@
+name: "דיווח תקלה"
+description: "דיווח מסודר על תקלה ב-Windows Startup Guard"
+title: "[בעיה] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "תודה שעזרת לשפר את התוכנה. נא לא לכלול סיסמאות או מפתחות גישה."
+  - type: textarea
+    id: description
+    attributes:
+      label: תיאור התקלה
+      description: מה קרה ומה ציפית שיקרה?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: שלבים לשחזור
+      description: אילו פעולות גרמו לתקלה?
+    validations:
+      required: false
+  - type: textarea
+    id: log
+    attributes:
+      label: לוג / פרטים טכניים
+      description: הדבק כאן את הלוג שהוכן מתוך התוכנה. יש להסיר מידע אישי.
+      render: text
+    validations:
+      required: false
