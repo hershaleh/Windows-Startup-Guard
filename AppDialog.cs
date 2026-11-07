@@ -18,8 +18,8 @@ internal static class AppDialog
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 24, 0, 0) };
         var yes = MakeButton("אישור", true);
         var no = MakeButton("ביטול", false);
-        yes.Click += (_, _) => { window.DialogResult = true; window.Close(); };
-        no.Click += (_, _) => { window.DialogResult = false; window.Close(); };
+        yes.Click += (_, _) => window.DialogResult = true;
+        no.Click += (_, _) => window.DialogResult = false;
         buttons.Children.Add(yes); buttons.Children.Add(no);
         root.Children.Add(buttons);
         window.Content = root;
