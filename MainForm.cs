@@ -198,8 +198,23 @@ public sealed class MainForm : Form
     private void RestoreBackups()
     {
         if (MessageBox.Show(_hebrew ? "לשחזר את כל הפריטים שגובו?" : "Restore all backed-up startup items?", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
-        var results = _manager.RestoreAll(); RefreshEntries();
-        MessageBox.Show(results.Count == 0 ? (_hebrew ? "לא נמצאו גיבויים." : "No backups found.") : string.Join(Environment.NewLine, results.Take(20)), _hebrew ? "תוצאות שחזור" : "Restore results");
+        try
+        {
+            var results = _manager.RestoreAll();
+            RefreshEntries();
+            var restored = results.Count(x => x.StartsWith("Restored ", StringComparison.Ordinal));
+            var skipped = results.Count(x => x.StartsWith("Restore skipped", StringComparison.Ordinal) || x.StartsWith("File restore skipped", StringComparison.Ordinal) || x.StartsWith("Registry restore skipped", StringComparison.Ordinal));
+            var errors = results.Count(x => x.Contains(" restore error:", StringComparison.OrdinalIgnoreCase) || x.StartsWith("Could not ", StringComparison.Ordinal));
+            _status.Text = _hebrew
+                ? $"שחזור הסתיים — הצליחו: {restored}, דולגו: {skipped}, שגיאות: {errors}"
+                : $"Restore finished — restored: {restored}, skipped: {skipped}, errors: {errors}";
+            var summary = _hebrew
+                ? $"סיכום: {restored} שוחזרו, {skipped} דולגו, {errors} שגיאות."
+                : $"Summary: {restored} restored, {skipped} skipped, {errors} errors.";
+            MessageBox.Show(results.Count == 0 ? (_hebrew ? "לא נמצאו גיבויים." : "No backups found.") : summary + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, results.Take(30)),
+                _hebrew ? "תוצאות שחזור" : "Restore results");
+        }
+        catch (Exception ex) { ShowError(ex); }
     }
 
     private void ExportCsv()
