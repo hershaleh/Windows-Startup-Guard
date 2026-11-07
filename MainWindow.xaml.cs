@@ -34,6 +34,7 @@ public partial class MainWindow : Window
         StartupGrid.ItemsSource = _rows;
         LoadCreatorAvatar();
         ApplyLanguage();
+        Dashboard_Click(this, new RoutedEventArgs());
     }
 
     private void LoadCreatorAvatar()
