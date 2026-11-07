@@ -169,7 +169,6 @@ public sealed class StartupManager
                 foreach (var name in backup.GetValueNames())
                     try
                     {
-                        var record = JsonSerializer.Deserialize<RegistryRecord>(backup.GetValue(name)?.ToString() ?? "");
                         if (!TryReadRegistryRecord(name, backup.GetValue(name)?.ToString(), out var record, out var kind))
                         {
                             result.Add("Registry restore skipped: invalid or unsupported backup record.");
@@ -280,7 +279,6 @@ public sealed class StartupManager
                 foreach (var backupName in backup.GetValueNames())
                     try
                     {
-                        var record = JsonSerializer.Deserialize<RegistryRecord>(backup.GetValue(backupName)?.ToString() ?? "");
                         if (!TryReadRegistryRecord(backupName, backup.GetValue(backupName)?.ToString(), out var record, out var kind)) continue;
                         var scope = record.Hive.Equals(Registry.LocalMachine.Name, StringComparison.OrdinalIgnoreCase) ? StartupScope.AllUsers : StartupScope.CurrentUser;
                         var command = kind is RegistryValueKind.String or RegistryValueKind.ExpandString
