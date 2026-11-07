@@ -116,7 +116,8 @@ public sealed class StartupManager
     {
         if (entry.Source == StartupSource.StartupFolder) { DisableFile(entry); return; }
         var parts = entry.Id.Split('|', 4);
-        if (parts.Length != 4) throw new InvalidOperationException("Invalid registry item.");
+        if (parts.Length != 4 || !parts[0].Equals("reg", StringComparison.Ordinal))
+            throw new InvalidOperationException("Invalid registry item.");
         if (!IsAllowedRegistryTarget(parts[1], parts[2]) || string.IsNullOrWhiteSpace(parts[3]))
             throw new InvalidOperationException("The registry startup target is not on the allowed list.");
         var hive = parts[1].Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) ? Registry.CurrentUser : Registry.LocalMachine;
@@ -145,6 +146,9 @@ public sealed class StartupManager
     private void DisableFile(StartupEntry entry)
     {
         var file = entry.FilePath ?? throw new InvalidOperationException("Missing startup file path.");
+        if (!IsAllowedStartupFolderPath(file))
+            throw new InvalidOperationException("Only files inside a Windows Startup folder can be disabled.");
+        file = Path.GetFullPath(file);
         if (!File.Exists(file)) throw new FileNotFoundException("Startup file no longer exists.", file);
         var stored = Path.Combine(_backupRoot, Guid.NewGuid().ToString("N") + Path.GetExtension(file));
         var metadata = stored + ".json";
