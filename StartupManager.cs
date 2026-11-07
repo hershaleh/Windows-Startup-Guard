@@ -340,7 +340,7 @@ public sealed class StartupManager
                     catch (Exception ex) { results.Add("Registry restore error: " + ex.Message); }
                 }
         }
-        foreach (var meta in wanted.Where(x => x.EndsWith(".json", StringComparison.OrdinalIgnoreCase)))
+        foreach (var meta in wanted.Where(IsBackupMetadataPath))
         {
             if (!File.Exists(meta)) continue;
             try
@@ -375,7 +375,7 @@ public sealed class StartupManager
         try
         {
             var parsed = JsonSerializer.Deserialize<RegistryRecord>(json ?? "");
-            if (parsed == null || string.IsNullOrWhiteSpace(parsed.Name) ||
+            if (parsed == null || string.IsNullOrWhiteSpace(parsed.Name) || parsed.Data is null ||
                 !IsAllowedRegistryTarget(parsed.Hive, parsed.Path) ||
                 !Enum.TryParse(parsed.Kind, out kind) || !Enum.IsDefined(kind) ||
                 kind is not (RegistryValueKind.String or RegistryValueKind.ExpandString or RegistryValueKind.DWord or RegistryValueKind.QWord or RegistryValueKind.Binary or RegistryValueKind.MultiString) ||
@@ -448,6 +448,21 @@ public sealed class StartupManager
         return allowed.Contains(path, StringComparer.OrdinalIgnoreCase) &&
                !(hive.Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) &&
                  path.StartsWith(@"Software\WOW6432Node", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool IsBackupMetadataPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !path.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            return false;
+        try
+        {
+            var root = Path.GetFullPath(_backupRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                + Path.DirectorySeparatorChar;
+            var fullPath = Path.GetFullPath(path);
+            return fullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase) &&
+                   string.Equals(Path.GetDirectoryName(fullPath), root.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return false; }
     }
 
     private static bool IsAllowedStartupFolderPath(string path)
