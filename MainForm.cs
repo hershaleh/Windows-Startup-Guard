@@ -29,7 +29,7 @@ public sealed class MainForm : Form
     private readonly LinkLabel _creditLink = new();
     private readonly Panel _creditPanel = new();
     private readonly Button _themeButton = new();
-    private bool _lightTheme;
+    private bool _lightTheme = true;
     private bool _hebrew = true;
     private List<StartupEntry> _entries = [];
     private Color _background = Color.FromArgb(17, 24, 39);
@@ -42,7 +42,7 @@ public sealed class MainForm : Form
     {
         Text = "Windows Startup Guard"; MinimumSize = new Size(1000, 650); Size = new Size(1220, 780);
         StartPosition = FormStartPosition.CenterScreen; BackColor = _background; ForeColor = _textColor;
-        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         Font = new Font("Segoe UI", 9.5f); BuildUi(); ApplyLanguage(); RefreshEntries();
     }
 
@@ -155,8 +155,8 @@ public sealed class MainForm : Form
         button.FlatStyle = FlatStyle.Flat; button.Cursor = Cursors.Hand; button.UseVisualStyleBackColor = false;
         button.FlatAppearance.BorderSize = primary ? 0 : 1; button.FlatAppearance.BorderColor = Color.FromArgb(75, 85, 99);
         button.BackColor = primary ? _blue : _surface; button.ForeColor = Color.White; button.Font = new Font("Segoe UI Semibold", 9, FontStyle.Bold);
-        button.FlatAppearance.MouseOverBackColor = primary ? Color.FromArgb(29, 78, 216) : Color.FromArgb(71, 85, 105);
-        button.FlatAppearance.MouseDownBackColor = Color.FromArgb(30, 64, 175);
+        button.FlatAppearance.MouseOverBackColor = primary ? Color.FromArgb(29, 78, 216) : (_lightTheme ? Color.FromArgb(226, 232, 240) : Color.FromArgb(71, 85, 105));
+        button.FlatAppearance.MouseDownBackColor = _lightTheme ? Color.FromArgb(191, 219, 254) : Color.FromArgb(30, 64, 175);
         button.Padding = new Padding(10, 2, 10, 2);
         button.Resize += (_, _) => ApplyRoundedRegion(button, 12);
         ApplyRoundedRegion(button, 12);
@@ -332,7 +332,7 @@ public sealed class MainForm : Form
         {
             if (control == _grid || control == _creditImage || control == _creditLink) continue;
             if (control == _disableButton || control == _guideButton) { control.BackColor = _blue; control.ForeColor = Color.White; }
-            else if (control is Button button) { button.BackColor = button == _disableButton || button == _guideButton ? _blue : _surface; button.ForeColor = button == _disableButton || button == _guideButton ? Color.White : _textColor; button.FlatAppearance.BorderColor = _lightTheme ? Color.FromArgb(203, 213, 225) : Color.FromArgb(75, 85, 99); }
+            else if (control is Button button) { button.BackColor = button == _disableButton || button == _guideButton ? _blue : _surface; button.ForeColor = button == _disableButton || button == _guideButton ? Color.White : _textColor; button.FlatAppearance.BorderColor = _lightTheme ? Color.FromArgb(203, 213, 225) : Color.FromArgb(75, 85, 99); button.FlatAppearance.MouseOverBackColor = button == _disableButton || button == _guideButton ? Color.FromArgb(29, 78, 216) : (_lightTheme ? Color.FromArgb(226, 232, 240) : Color.FromArgb(71, 85, 105)); button.FlatAppearance.MouseDownBackColor = _lightTheme ? Color.FromArgb(191, 219, 254) : Color.FromArgb(30, 64, 175); }
             else if (control is TextBoxBase || control is ComboBox) { control.BackColor = _surface; control.ForeColor = _textColor; }
             else if (control is Label) control.ForeColor = control == _subtitle || _cardDetails.Contains(control) || _cardHeadings.Contains(control) ? _mutedColor : _textColor;
             else if (control is Panel panel && (panel == _creditPanel || panel.Name == "SummaryCard")) panel.BackColor = _surface;
