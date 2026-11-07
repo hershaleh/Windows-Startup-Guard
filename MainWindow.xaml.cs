@@ -51,11 +51,39 @@ public partial class MainWindow : Window
         var fade = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(480))
         { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
         Root.BeginAnimation(OpacityProperty, fade);
+        AnimateButtons(Root);
         AnimateCard(CardItems, 80);
         AnimateCard(CardBackups, 180);
         AnimateCard(CardProtection, 280);
         StartupGrid.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(650)) { BeginTime = TimeSpan.FromMilliseconds(180) });
         RefreshInventory();
+    }
+
+    private static void AnimateButtons(DependencyObject parent)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is System.Windows.Controls.Button button)
+            {
+                var scale = new ScaleTransform(1, 1);
+                button.RenderTransformOrigin = new Point(.5, .5);
+                button.RenderTransform = scale;
+                button.MouseEnter += (_, _) =>
+                {
+                    scale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(1.035, TimeSpan.FromMilliseconds(120)));
+                    scale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(1.035, TimeSpan.FromMilliseconds(120)));
+                    button.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(.88, TimeSpan.FromMilliseconds(120)));
+                };
+                button.MouseLeave += (_, _) =>
+                {
+                    scale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(150)));
+                    scale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(150)));
+                    button.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(150)));
+                };
+            }
+            AnimateButtons(child);
+        }
     }
 
     private static void AnimateCard(FrameworkElement card, int delay)
