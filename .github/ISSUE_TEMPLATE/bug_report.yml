@@ -1,7 +1,6 @@
 name: "דיווח תקלה"
 description: "דיווח מסודר על תקלה ב-Windows Startup Guard"
 title: "[בעיה] "
-labels: ["bug"]
 body:
   - type: markdown
     attributes:
