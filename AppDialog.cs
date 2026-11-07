@@ -11,6 +11,8 @@ using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
 using Orientation = System.Windows.Controls.Orientation;
 using HorizontalAlignment = System.Windows.HorizontalAlignment;
+using FlowDirection = System.Windows.FlowDirection;
+using FontFamily = System.Windows.Media.FontFamily;
 
 namespace WindowsStartupGuard;
 
@@ -156,7 +158,7 @@ internal static class AppDialog
         };
         button.MouseEnter += (_, _) => button.BeginAnimation(UIElement.OpacityProperty,
             new DoubleAnimation(0.78, TimeSpan.FromMilliseconds(110)));
-        button.MouseLeave += (_, _) => button.BeginAnimation(OpacityProperty,
+        button.MouseLeave += (_, _) => button.BeginAnimation(UIElement.OpacityProperty,
             new DoubleAnimation(1, TimeSpan.FromMilliseconds(140)));
         return button;
     }
