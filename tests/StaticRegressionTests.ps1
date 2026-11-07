@@ -132,6 +132,18 @@ Test-Contract 'Dashboard cards animate into view' $wpfCode 'AnimateCard(CardProt
 Test-Contract 'Window entrance animation retained' $wpfCode 'Root.BeginAnimation(OpacityProperty, fade)'
 Test-Contract 'Button hover animation in dialogs' $dialogCode 'DoubleAnimation(0.78'
 
+
+Test-Contract 'Search toolbar has independent layout columns' $wpfXaml 'x:Name="InventoryToolbar"'
+Test-Contract 'Search toolbar heading and controls occupy separate columns' $wpfXaml 'Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center"'
+Test-Contract 'Search field uses modern rounded container' $wpfXaml 'CornerRadius="11" Height="40" Width="225"'
+Test-Contract 'Search field includes search glyph' $wpfXaml 'Text="⌕"'
+Test-Contract 'Dashboard has its own content panel' $wpfXaml 'x:Name="DashboardDetails"'
+Test-Contract 'Dashboard starts as the opening view' $wpfCode 'Dashboard_Click(this, new RoutedEventArgs())'
+Test-Contract 'Dashboard hides inventory toolbar and table' $wpfCode 'InventoryToolbar.Visibility = Visibility.Collapsed'
+Test-Contract 'Dashboard hides inventory actions' $wpfCode 'ActionsPanel.Visibility = Visibility.Collapsed'
+Test-Contract 'Startup navigation reveals inventory' $wpfCode 'InventoryPanel.Visibility = Visibility.Visible'
+Test-Contract 'Dashboard includes navigation to startup list' $wpfXaml 'x:Name="GoToStartupButton"'
+
 Write-Host "Regression checks passed: $passed"
 if ($failed.Count -gt 0) { Write-Host "Regression checks failed ($($failed.Count)):"; $failed | ForEach-Object { Write-Host " - $_" }; exit 1 }
 if ($passed -lt 45) { throw "Expected at least 45 regression checks; ran $passed." }
