@@ -427,7 +427,7 @@ public sealed class MainForm : Form
         if (selected.Count == 0) { MessageBox.Show(_hebrew ? "בחר פריטים בטבלה." : "Select items in the table."); return; }
         if (MessageBox.Show(_hebrew ? "לנטרל את הפריטים שנבחרו? יישמר גיבוי לשחזור." : "Disable selected startup items? A backup will be kept for restore.", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
         var errors = new List<string>();
-        foreach (var item in selected) try { _manager.Disable(item); } catch (Exception ex) { errors.Add(item.Name + ": " + ex.Message); }
+        foreach (var item in selected) try { _manager.Disable(item); } catch (Exception ex) { ErrorReporter.LogException(ex, "Disable startup item: " + item.Name); errors.Add(item.Name + ": " + ex.Message); }
         RefreshEntries(); if (errors.Count > 0) MessageBox.Show(string.Join(Environment.NewLine, errors), _hebrew ? "חלק מהפריטים לא נוטרלו" : "Some items could not be disabled");
     }
 
