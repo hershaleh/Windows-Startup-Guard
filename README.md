@@ -14,6 +14,7 @@ A free, open-source Windows desktop utility for discovering and managing common 
 - Export the currently displayed inventory to UTF-8 CSV.
 - Best-effort RAM estimate for matching running processes (shared process memory is counted once per executable name in the dashboard total).
 - Disable selected entries with a local backup.
+- View disabled items in the inventory and restore only selected backups, or restore all backups.
 - Clear status-bar indication when running as administrator or a standard user, including a note that all-user changes may require elevation.
 - Restore registry values and Startup folder files disabled by this app, with a per-item result summary showing restored, skipped, and failed items.
 - Optional process-close action with an explicit confirmation.
@@ -38,7 +39,7 @@ dotnet run --project WindowsStartupGuard.csproj
 
 ## Planned
 
-- Show disabled entries and offer per-item restore.
+- Add scheduled tasks and service inventory in a read-only advanced view.
 - Scheduled tasks and service inventory in a read-only advanced view.
 - Publisher and digital-signature information.
 - Startup impact history and launch-delay measurements.
