@@ -94,7 +94,7 @@ public sealed class MainForm : Form
     {
         RightToLeft = _hebrew ? RightToLeft.Yes : RightToLeft.No; RightToLeftLayout = _hebrew;
         _search.PlaceholderText = _hebrew ? "חיפוש תוכנה או פקודה..." : "Search apps or commands";
-        var selected = _filter.SelectedIndex; _filter.Items.Clear(); _filter.Items.AddRange(_hebrew ? ["הכול", "מופעלות", "מנוטרלות"] : ["All items", "Enabled", "Disabled"]);
+        var selected = _filter.SelectedIndex; _filter.Items.Clear(); _filter.Items.AddRange(_hebrew ? ["הכול", "מופעלות"] : ["All items", "Enabled"]);
         _filter.SelectedIndex = selected < 0 ? 0 : selected; _status.Text = _hebrew ? "מוכן" : "Ready";
     }
 
