@@ -8,6 +8,9 @@ $failed = [System.Collections.Generic.List[string]]::new()
 function Test-Contract([string]$name, [string]$text, [string]$expected) {
     if ($text.Contains($expected)) { $script:passed++ } else { $script:failed.Add($name) }
 }
+function Test-NotContains([string]$name, [string]$text, [string]$unexpected) {
+    if (-not $text.Contains($unexpected)) { $script:passed++ } else { $script:failed.Add($name) }
+}
 Test-Contract 'HKCU Run discovery' $source 'Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\Run"'
 Test-Contract 'HKCU RunOnce discovery' $source 'Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\RunOnce"'
 Test-Contract 'HKLM Run discovery' $source 'Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\Run"'
@@ -38,13 +41,16 @@ Test-Contract 'File move failure cleans metadata' $source 'File.Delete(metadata)
 Test-Contract 'File restore path allowlist' $source 'IsAllowedStartupFolderPath(record.OriginalPath)'
 Test-Contract 'Selected metadata path restricted' $source 'IsBackupMetadataPath'
 Test-Contract 'Restore collision avoids overwrite' $source '.restored-'
+Test-Contract 'File backups use unique identifiers' $source 'Guid.NewGuid().ToString("N")'
+Test-Contract 'Restore only allows canonical registry targets' $source 'IsAllowedRegistryTarget(parsed.Hive, parsed.Path)'
+Test-Contract 'Registry restore preserves original value kind' $source 'target.SetValue(record.Name, value, kind)'
 Test-Contract 'Metadata must be JSON' $source 'path.EndsWith(".json"'
 Test-Contract 'Metadata confined to backup directory' $source 'Path.GetDirectoryName(fullPath)'
 Test-Contract 'Process matching by executable name' $source 'Process.GetProcessesByName(name)'
 Test-Contract 'Exact executable path comparison' $source 'StringComparison.OrdinalIgnoreCase'
 Test-Contract 'Graceful process close only' $source 'process.CloseMainWindow()'
 Test-Contract 'Graceful close timeout' $source 'process.WaitForExit(3000)'
-Test-Contract 'No forced process termination' $source 'process.Kill('
+Test-NotContains 'No forced process termination' $source 'process.Kill('
 Test-Contract 'Disable confirmation' $form 'Disable selected startup items?'
 Test-Contract 'Restore confirmation' $form 'Restore all backed-up startup items?'
 Test-Contract 'Selected restore action' $form 'RestoreSelected(backupIds)'
@@ -53,6 +59,7 @@ Test-Contract 'CSV quoting' $form 'value.Replace("\"", "\"\"")'
 Test-Contract 'CSV formula mitigation' $form "firstMeaningful is '=' or '+' or '-' or '@'"
 Test-Contract 'UTF-8 BOM export' $form 'new System.Text.UTF8Encoding(true)'
 Test-Contract 'Admin status visibility' $form 'WindowsBuiltInRole.Administrator'
+Test-Contract 'Disable action ignores disabled rows' $form 'Selected().Where(x => x.IsEnabled)'
 Test-Contract 'Nullable reference checks' $project '<Nullable>enable</Nullable>'
 Test-Contract '.NET 10 Windows target' $project '<TargetFramework>net10.0-windows</TargetFramework>'
 Test-Contract 'WinForms enabled' $project '<UseWindowsForms>true</UseWindowsForms>'
