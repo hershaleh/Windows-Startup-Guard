@@ -15,7 +15,7 @@ internal sealed class SplashScreen : Form
         TopMost = true;
         DoubleBuffered = true;
         BackColor = Color.FromArgb(15, 45, 90);
-        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         _timer.Tick += (_, _) => { _timer.Stop(); Close(); };
         Shown += (_, _) => _timer.Start();
         FormClosed += (_, _) => _timer.Dispose();
@@ -31,7 +31,7 @@ internal sealed class SplashScreen : Form
         e.Graphics.FillEllipse(glow, 355, -90, 260, 260);
         using var border = new Pen(Color.FromArgb(95, 190, 235), 2);
         e.Graphics.DrawRoundedRectangle(border, new Rectangle(1, 1, Width - 3, Height - 3), 22);
-        using var icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        using var icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         if (icon != null) e.Graphics.DrawIcon(icon, new Rectangle(205, 35, 110, 110));
         using var titleFont = new Font("Segoe UI Semibold", 22, FontStyle.Bold);
         using var subtitleFont = new Font("Segoe UI", 10.5f);
