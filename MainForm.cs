@@ -138,6 +138,13 @@ public sealed class MainForm : Form
         value.Text = "—"; value.ForeColor = Color.White; value.Font = new Font("Segoe UI Semibold", 22, FontStyle.Bold); value.Location = new Point(14, 30); value.AutoSize = true;
         var d = new Label { Text = detail, ForeColor = Color.FromArgb(156, 163, 175), Font = new Font("Segoe UI", 8), Location = new Point(92, 47), AutoSize = true };
         _cardDetails[index] = d;
+        card.Paint += (_, e) =>
+        {
+            using var pen = new Pen(_lightTheme ? Color.FromArgb(226, 232, 240) : Color.FromArgb(55, 65, 81));
+            e.Graphics.DrawRectangle(pen, 0, 0, Math.Max(0, card.Width - 1), Math.Max(0, card.Height - 1));
+            using var accent = new SolidBrush(_blue);
+            e.Graphics.FillRectangle(accent, 14, 0, 42, 4);
+        };
         card.Controls.AddRange([h, value, d]); return card;
     }
 
@@ -342,10 +349,11 @@ public sealed class MainForm : Form
         _grid.ColumnHeadersDefaultCellStyle.BackColor = _lightTheme ? Color.FromArgb(219, 234, 254) : Color.FromArgb(55, 65, 81);
         _grid.ColumnHeadersDefaultCellStyle.ForeColor = _textColor;
         _grid.DefaultCellStyle.BackColor = _surface; _grid.DefaultCellStyle.ForeColor = _textColor;
-        _grid.DefaultCellStyle.SelectionBackColor = _lightTheme ? Color.FromArgb(191, 219, 254) : Color.FromArgb(37, 99, 160);
+        _grid.DefaultCellStyle.SelectionBackColor = _lightTheme ? Color.FromArgb(219, 234, 254) : Color.FromArgb(37, 99, 160);
         _grid.DefaultCellStyle.SelectionForeColor = _lightTheme ? Color.FromArgb(15, 23, 42) : Color.White;
-        _grid.RowTemplate.Height = 34;
-        _grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(37, 99, 160); _grid.DefaultCellStyle.SelectionForeColor = Color.White;
+        _grid.RowTemplate.Height = 38;
+        _grid.DefaultCellStyle.Font = new Font("Segoe UI", 9.5f);
+        _grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9.5f, FontStyle.Bold);
         _grid.AlternatingRowsDefaultCellStyle.BackColor = _lightTheme ? Color.FromArgb(248, 250, 252) : Color.FromArgb(36, 47, 63);
         _grid.GridColor = _lightTheme ? Color.FromArgb(226, 232, 240) : Color.FromArgb(55, 65, 81);
         _grid.ColumnHeadersHeight = 38;
