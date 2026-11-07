@@ -270,17 +270,25 @@ public partial class MainWindow : Window
 
     private void Dashboard_Click(object sender, RoutedEventArgs e)
     {
-        ContentScroll.ScrollToTop();
+        InventoryToolbar.Visibility = Visibility.Collapsed;
+        InventoryPanel.Visibility = Visibility.Collapsed;
+        ActionsPanel.Visibility = Visibility.Collapsed;
+        DashboardDetails.Visibility = Visibility.Visible;
         DashboardNav.Background = Brush("#263B62");
         StartupNav.Background = Brushes.Transparent;
+        ContentScroll.ScrollToTop();
     }
 
     private void Startup_Click(object sender, RoutedEventArgs e)
     {
-        ContentScroll.ScrollToVerticalOffset(0);
-        StartupGrid.BringIntoView();
+        DashboardDetails.Visibility = Visibility.Collapsed;
+        InventoryToolbar.Visibility = Visibility.Visible;
+        InventoryPanel.Visibility = Visibility.Visible;
+        ActionsPanel.Visibility = Visibility.Visible;
         StartupNav.Background = Brush("#263B62");
         DashboardNav.Background = Brushes.Transparent;
+        ContentScroll.ScrollToTop();
+        StartupGrid.BringIntoView();
     }
 
     private void CreditLink_RequestNavigate(object sender, RequestNavigateEventArgs e)
