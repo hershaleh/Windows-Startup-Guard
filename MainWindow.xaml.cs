@@ -7,6 +7,14 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
+using Application = System.Windows.Application;
+using Brushes = System.Windows.Media.Brushes;
+using Color = System.Windows.Media.Color;
+using ColorConverter = System.Windows.Media.ColorConverter;
+using FlowDirection = System.Windows.FlowDirection;
+using Point = System.Windows.Point;
+using Visual = System.Windows.Media.Visual;
+using UIElement = System.Windows.UIElement;
 
 namespace WindowsStartupGuard;
 
