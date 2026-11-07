@@ -25,11 +25,16 @@ public sealed class MainForm : Form
     private readonly Button _guideButton = new();
     private readonly PictureBox _creditImage = new();
     private readonly LinkLabel _creditLink = new();
+    private readonly Panel _creditPanel = new();
+    private readonly Button _themeButton = new();
+    private bool _lightTheme;
     private bool _hebrew = true;
     private List<StartupEntry> _entries = [];
-    private readonly Color _background = Color.FromArgb(17, 24, 39);
-    private readonly Color _surface = Color.FromArgb(31, 41, 55);
-    private readonly Color _blue = Color.FromArgb(37, 99, 235);
+    private Color _background = Color.FromArgb(17, 24, 39);
+    private Color _surface = Color.FromArgb(31, 41, 55);
+    private Color _blue = Color.FromArgb(37, 99, 235);
+    private Color _textColor = Color.White;
+    private Color _mutedColor = Color.FromArgb(156, 163, 175);
 
     public MainForm()
     {
@@ -51,13 +56,17 @@ public sealed class MainForm : Form
         language.Size = new Size(112, 36); language.Anchor = AnchorStyles.Top | AnchorStyles.Right; language.Location = new Point(900, 10);
         ConfigureButton(_guideButton, "מדריך", true, (_, _) => ShowGuide());
         _guideButton.Size = new Size(92, 36); _guideButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-        _creditImage.Size = new Size(44, 44); _creditImage.SizeMode = PictureBoxSizeMode.Zoom; _creditImage.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        _creditPanel.Size = new Size(176, 56); _creditPanel.BackColor = _surface; _creditPanel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        _creditPanel.Paint += (_, e) => ControlPaint.DrawBorder(e.Graphics, _creditPanel.ClientRectangle, Color.FromArgb(75, 85, 99), ButtonBorderStyle.Solid);
+        _creditImage.Size = new Size(46, 46); _creditImage.SizeMode = PictureBoxSizeMode.Zoom; _creditImage.Location = new Point(6, 5);
         using (var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WindowsStartupGuard.Assets.hershaleh.jpg"))
             if (stream != null) { using var sourceImage = new Bitmap(stream); _creditImage.Image = new Bitmap(sourceImage); }
-        _creditLink.AutoSize = true; _creditLink.LinkColor = Color.FromArgb(147, 197, 253); _creditLink.Text = "הערשלה";
+        var creditCaption = new Label { Text = "נוצר על ידי", AutoSize = true, ForeColor = _mutedColor, Font = new Font("Segoe UI", 8), Location = new Point(62, 8) };
+        _creditLink.AutoSize = true; _creditLink.LinkColor = Color.FromArgb(96, 165, 250); _creditLink.ActiveLinkColor = Color.FromArgb(59, 130, 246); _creditLink.Text = "הערשלה"; _creditLink.Font = new Font("Segoe UI Semibold", 10, FontStyle.Bold); _creditLink.Location = new Point(62, 25);
         _creditLink.LinkClicked += (_, _) => Process.Start(new ProcessStartInfo("https://mitmachim.top/user/%D7%94%D7%A2%D7%A8%D7%A9%D7%9C%D7%94") { UseShellExecute = true });
-        header.Controls.AddRange([title, _subtitle, language, _guideButton, _creditImage, _creditLink]);
-        header.Resize += (_, _) => { language.Left = header.ClientSize.Width - language.Width; _guideButton.Left = language.Left - _guideButton.Width - 8; _creditImage.Left = _guideButton.Left - _creditImage.Width - 18; _creditImage.Top = 7; _creditLink.Left = _creditImage.Left - _creditLink.Width - 7; _creditLink.Top = 22; };
+        _creditPanel.Controls.AddRange([_creditImage, creditCaption, _creditLink]);
+        header.Controls.AddRange([title, _subtitle, language, _guideButton, _creditPanel]);
+        header.Resize += (_, _) => { language.Left = header.ClientSize.Width - language.Width; _guideButton.Left = language.Left - _guideButton.Width - 8; _creditPanel.Left = _guideButton.Left - _creditPanel.Width - 12; _creditPanel.Top = 0; };
         header.PerformLayout();
         root.Controls.Add(header, 0, 0);
 
@@ -77,9 +86,11 @@ public sealed class MainForm : Form
         ConfigureButton(_stopButton, "■  Stop process", false, (_, _) => StopSelected());
         ConfigureButton(_restoreButton, "↶  Restore backups", false, (_, _) => RestoreBackups());
         ConfigureButton(_exportButton, "⇩ Export CSV", false, (_, _) => ExportCsv());
+        ConfigureButton(_themeButton, "☼ מצב בהיר", false, (_, _) => { _lightTheme = !_lightTheme; ApplyTheme(); });
+        _themeButton.Width = 112;
         var restoreSelectedButton = MakeButton("Restore selected", false, (_, _) => RestoreSelected());
         restoreSelectedButton.Name = "RestoreSelectedButton";
-        toolbar.Controls.AddRange([_refreshButton, _disableButton, _stopButton, restoreSelectedButton, _restoreButton, _exportButton]);
+        toolbar.Controls.AddRange([_refreshButton, _disableButton, _stopButton, restoreSelectedButton, _restoreButton, _exportButton, _themeButton]);
         root.Controls.Add(toolbar, 0, 2);
 
         _grid.Dock = DockStyle.Fill; _grid.BackgroundColor = _surface; _grid.BorderStyle = BorderStyle.None; _grid.EnableHeadersVisualStyles = false;
@@ -152,6 +163,7 @@ public sealed class MainForm : Form
         _exportButton.Text = _hebrew ? "⇩ ייצוא CSV" : "⇩ Export CSV";
         _guideButton.Text = _hebrew ? "מדריך" : "Guide";
         _creditLink.Text = _hebrew ? "הערשלה" : "Hershaleh";
+        _themeButton.Text = _lightTheme ? (_hebrew ? "☾ מצב כהה" : "☾ Dark mode") : (_hebrew ? "☼ מצב בהיר" : "☼ Light mode");
         var restoreSelectedButton = Controls.Find("RestoreSelectedButton", true).OfType<Button>().FirstOrDefault();
         if (restoreSelectedButton != null) restoreSelectedButton.Text = _hebrew ? "שחזור נבחר" : "Restore selected";
         string[] headers = _hebrew
@@ -164,6 +176,7 @@ public sealed class MainForm : Form
         _privilegeStatus.Text = isAdministrator
             ? (_hebrew ? "הרשאות מנהל" : "Administrator")
             : (_hebrew ? "משתמש רגיל — שינוי פריטי כל המשתמשים עשוי לדרוש מנהל" : "Standard user — changing all-user items may require admin");
+        ApplyTheme();
     }
 
     private void ShowGuide()
@@ -176,13 +189,51 @@ public sealed class MainForm : Form
             Dock = DockStyle.Fill, BorderStyle = BorderStyle.None, BackColor = _surface, ForeColor = Color.FromArgb(229, 231, 235),
             Font = new Font("Segoe UI", 10.5f), Padding = new Padding(16), RightToLeft = _hebrew ? RightToLeft.Yes : RightToLeft.No };
         content.Text = _hebrew
-            ? "מדריך שימוש\r\n\r\nמה מופיע בטבלה?\r\nכל שורה היא פריט שעשוי לפעול בעת הכניסה ל-Windows. הסריקה כוללת את מפתחות Run ו-RunOnce ברישום ואת תיקיות האתחול של המשתמש ושל כלל המשתמשים.\r\n\r\nהעמודות\r\n• תוכנה — שם הפריט.\r\n• מפרסם וגרסה — מידע מפרטי הקובץ; אין בכך אימות חתימה דיגיטלית או הוכחה שהמפרסם אמין.\r\n• מצב — מופעל: הפריט נמצא במקור האתחול. מושבת: הפריט הוסר ממקור האתחול ונשמר גיבוי שניתן לנסות לשחזר.\r\n• זיכרון — אומדן זיכרון של תהליכים בעלי שם תואם, לא מדידה מדויקת של הפריט עצמו.\r\n• מקור — רישום מערכת או תיקיית אתחול.\r\n• היקף — המשתמש הנוכחי או כלל המשתמשים.\r\n• נתיב ופקודה — המקום והפקודה שמהם הפריט מופעל. היזהר מפקודות שאינך מזהה.\r\n\r\nהכפתורים\r\n• רענון — סריקה מחדש.\r\n• נטרול נבחרים — מסיר את הפריטים המסומנים ממקור האתחול ושומר גיבוי. הפעולה דורשת אישור ואינה מסירה את התוכנה מהמחשב.\r\n• סגירת תהליך — מבקש סגירה רגילה של התהליך המתאים לפריט יחיד. שמור עבודה פתוחה תחילה; אין סגירה כפויה.\r\n• שחזור נבחר — משחזר רק גיבויים שסומנו בטבלה.\r\n• שחזור גיבויים — מנסה לשחזר את כל הגיבויים. יעדים קיימים אינם נדרסים.\r\n• ייצוא CSV — שומר את השורות המוצגות בקובץ לגיליון אלקטרוני.\r\n\r\nחיפוש וסינון\r\nהקלד שם, מפרסם או פקודה בתיבת החיפוש. הרשימה הנפתחת מסננת לפי היקף המשתמשים.\r\n\r\nהרשאות ובטיחות\r\nשינוי פריטי אתחול של כלל המשתמשים עשוי לדרוש הרשאות מנהל. אל תנטרל פריט שאינך מבין: רכיבי אבטחה, גיבוי, מנהלי התקנים ורכיבי מערכת עלולים להיפגע. מומלץ לייצא רשימה לפני שינויים.\r\n\r\nהיקף הסריקה\r\nהגרסה הנוכחית סורקת Run/RunOnce ותיקיות אתחול בלבד. היא אינה סורקת שירותי Windows או משימות מתוזמנות."
-            : "USER GUIDE\r\n\r\nWhat is listed?\r\nEach row is an item that may launch when you sign in to Windows. The scan covers Run and RunOnce registry keys and the current-user and all-users Startup folders.\r\n\r\nColumns\r\n• Application — item name.\r\n• Publisher and version — file metadata only; this does not verify a digital signature or prove trustworthiness.\r\n• Status — Enabled means present in startup. Disabled means removed from startup and backed up for possible restoration.\r\n• RAM — approximate memory used by processes with a matching name, not an exact measurement for the startup item.\r\n• Source — registry or Startup folder.\r\n• Scope — current user or all users.\r\n• Path and command — where and how the item launches. Be careful with commands you do not recognize.\r\n\r\nToolbar buttons\r\n• Refresh — scan again.\r\n• Disable selected — removes selected items from startup and keeps a backup. Confirmation is required; this does not uninstall the app.\r\n• Stop process — requests a normal close for the process matching one selected item. Save work first; no forced termination is used.\r\n• Restore selected — restores only selected backups.\r\n• Restore backups — attempts to restore all backups. Existing targets are never overwritten.\r\n• Export CSV — saves the visible rows to a spreadsheet file.\r\n\r\nSearch and filters\r\nSearch by name, publisher, or command. The dropdown filters by user scope.\r\n\r\nPermissions and safety\r\nChanging all-users entries may require administrator rights. Do not disable items you do not understand: security, backup, driver, and system components may be affected. Export the inventory before making changes.\r\n\r\nScan coverage\r\nThis version scans Run/RunOnce and Startup folders only. It does not scan Windows services or scheduled tasks.";
+            ? "מדריך פשוט — מה לעשות בכל מצב?\r\n\r\nהמטרה של התוכנה\r\nלמנוע מתוכנות מיותרות להיפתח לבד בכל הפעלה של Windows. כך אפשר לצמצם עומס בזמן הכניסה למחשב. התוכנה לא מסירה תוכנות מהמחשב — היא רק משנה אם הן יופעלו אוטומטית.\r\n\r\nאיזו בעיה יש לך?\r\n• המחשב עולה לאט או נפתחות הרבה תוכנות? סמן בטבלה תוכנות שאתה מזהה ואינך צריך מיד עם הפעלת המחשב, ואז לחץ על ״נטרול נבחרים״. בפעם הבאה הן לא אמורות להיפתח אוטומטית.\r\n• תוכנה שהפסקת להפעיל אוטומטית חסרה לך? סמן את השורה שמסומנת ״מושבת״ ולחץ על ״שחזור נבחר״. אפשר גם להחזיר את כל הגיבויים באמצעות ״שחזור גיבויים״.\r\n• תוכנה פתוחה לא מגיבה? בחר את הפריט שלה ולחץ על ״סגירת תהליך״. זו בקשה לסגירה רגילה בלבד; שמור עבודה לפני כן. הכפתור אינו מונע מהתוכנה לעלות שוב באתחול הבא.\r\n• אתה רוצה לשמור את הרשימה או לשלוח אותה לתמיכה? לחץ על ״ייצוא CSV״ ושמור את הקובץ.\r\n• הרשימה לא עדכנית? לחץ על ״רענון״ כדי לסרוק שוב.\r\n\r\nמה עושה כל כפתור?\r\n• רענון — בודק מחדש אילו תוכנות מוגדרות להפעלה אוטומטית.\r\n• נטרול נבחרים — מוציא את השורות המסומנות מרשימת ההפעלה האוטומטית ושומר גיבוי כדי שאפשר יהיה להחזיר אותן. התוכנה עצמה נשארת מותקנת.\r\n• סגירת תהליך — מבקש מתוכנה שכבר פועלת להיסגר בצורה רגילה. זה לא מסיר אותה מהאתחול.\r\n• שחזור נבחר — מחזיר להפעלה אוטומטית רק את הגיבויים שסימנת.\r\n• שחזור גיבויים — מחזיר את כל הגיבויים האפשריים. אם היעד כבר תפוס, הוא לא יידרס.\r\n• ייצוא CSV — יוצר קובץ שאפשר לפתוח בתוכנת גיליונות או לצרף לפנייה לתמיכה.\r\n• מצב בהיר/כהה — מחליף את צבעי התצוגה בלבד; אינו משנה את הגדרות Windows.\r\n\r\nאיך משתמשים ברשימה?\r\nחפש לפי שם תוכנה, מפרסם או פקודה. המסנן מאפשר להציג פריטים של המשתמש הנוכחי או של כלל המשתמשים. השורה ״מופעל״ מציינת שהתוכנה מוגדרת לעלות אוטומטית; ״מושבת״ מציינת שיש לה גיבוי והיא אינה אמורה לעלות ממקור זה.\r\n\r\nאיך להימנע מתקלה?\r\nנטרל רק תוכנות שאתה מזהה ויודע שאינך צריך בהפעלה. אל תיגע ברכיבי אבטחה, גיבוי, מנהלי התקנים או רכיבי Windows שאינך מכיר. אם אינך בטוח — אל תשנה. פריטים של כלל המשתמשים עשויים לדרוש הפעלה כמנהל.\r\n\r\nמה התוכנה עדיין לא בודקת?\r\nהגרסה הנוכחית בודקת את רשומות Run/RunOnce ואת תיקיות האתחול בלבד. היא אינה מציגה שירותי Windows או משימות מתוזמנות. נתון הזיכרון הוא אומדן של תהליכים בעלי שם תואם, ולא מדידה מדויקת של השימוש של התוכנה."
+            : "QUICK GUIDE — WHAT SHOULD I DO?\r\n\r\nWhat this app does\r\nIt helps stop unnecessary apps from opening automatically whenever Windows starts. This can reduce the number of apps competing during sign-in. It does not uninstall apps; it only changes whether they launch automatically.\r\n\r\nChoose the problem you want to solve\r\n• Too many apps open when you turn on the PC? Select apps you recognize and do not need immediately, then click “Disable selected”. They should no longer launch automatically.\r\n• An app you disabled is missing from startup? Select its “Disabled” row and click “Restore selected”. Or use “Restore backups” to bring back all restorable items.\r\n• An already-open app is not responding? Select its item and click “Stop process”. This only requests a normal close. Save your work first. It does not prevent the app from launching next time.\r\n• Need to save or share the inventory? Click “Export CSV” and save the file.\r\n• The list may be out of date? Click “Refresh” to scan again.\r\n\r\nWhat each button does\r\n• Refresh — checks again which apps are configured to start automatically.\r\n• Disable selected — removes selected entries from automatic startup and keeps a backup so you can undo the change. The app remains installed.\r\n• Stop process — asks an already-running app to close normally. It does not remove the app from startup.\r\n• Restore selected — returns only the selected backups to automatic startup.\r\n• Restore backups — attempts to return all backups. Existing targets are not overwritten.\r\n• Export CSV — creates a file you can open in a spreadsheet or attach to a support request.\r\n• Light/Dark mode — changes appearance only; it does not change Windows settings.\r\n\r\nUsing the list\r\nSearch by app name, publisher, or command. The filter shows entries for the current user or all users. “Enabled” means an app is configured to start automatically. “Disabled” means a backup exists and it should no longer launch from that location.\r\n\r\nAvoiding problems\r\nDisable only apps you recognize and know you do not need at startup. Do not change security, backup, driver, or Windows components you do not understand. If unsure, leave the item alone. All-users entries may require administrator rights.\r\n\r\nCurrent limitations\r\nThis version checks Run/RunOnce registry entries and Startup folders only. It does not list Windows services or scheduled tasks. RAM is an estimate based on matching process names, not an exact measurement for the app itself.";
         var close = MakeButton(_hebrew ? "סגירה" : "Close", true, (_, _) => guide.Close());
         close.Dock = DockStyle.Bottom; close.Height = 42;
         var panel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(16), BackColor = _background };
         panel.Controls.Add(content); panel.Controls.Add(close); guide.Controls.Add(panel); guide.AcceptButton = close;
         guide.ShowDialog(this);
+    }
+
+    private void ApplyTheme()
+    {
+        _background = _lightTheme ? Color.FromArgb(243, 246, 250) : Color.FromArgb(17, 24, 39);
+        _surface = _lightTheme ? Color.White : Color.FromArgb(31, 41, 55);
+        _blue = _lightTheme ? Color.FromArgb(37, 99, 235) : Color.FromArgb(37, 99, 235);
+        _textColor = _lightTheme ? Color.FromArgb(31, 41, 55) : Color.White;
+        _mutedColor = _lightTheme ? Color.FromArgb(100, 116, 139) : Color.FromArgb(156, 163, 175);
+        BackColor = _background; ForeColor = _textColor;
+        foreach (Control control in GetAllControls(this))
+        {
+            if (control == _grid || control == _creditImage || control == _creditLink) continue;
+            if (control == _disableButton || control == _guideButton) { control.BackColor = _blue; control.ForeColor = Color.White; }
+            else if (control is Button) { control.BackColor = _surface; control.ForeColor = _textColor; }
+            else if (control is TextBoxBase || control is ComboBox) { control.BackColor = _surface; control.ForeColor = _textColor; }
+            else if (control is Label) control.ForeColor = control == _subtitle || _cardDetails.Contains(control) || _cardHeadings.Contains(control) ? _mutedColor : _textColor;
+            else if (control is Panel panel && panel == _creditPanel) panel.BackColor = _surface;
+            else if (control is Panel || control is TableLayoutPanel || control is FlowLayoutPanel) control.BackColor = _background;
+        }
+        _grid.BackgroundColor = _surface;
+        _grid.ColumnHeadersDefaultCellStyle.BackColor = _lightTheme ? Color.FromArgb(226, 232, 240) : Color.FromArgb(55, 65, 81);
+        _grid.ColumnHeadersDefaultCellStyle.ForeColor = _textColor;
+        _grid.DefaultCellStyle.BackColor = _surface; _grid.DefaultCellStyle.ForeColor = _textColor;
+        _grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(37, 99, 160); _grid.DefaultCellStyle.SelectionForeColor = Color.White;
+        _grid.AlternatingRowsDefaultCellStyle.BackColor = _lightTheme ? Color.FromArgb(241, 245, 249) : Color.FromArgb(36, 47, 63);
+        _status.Owner?.Invalidate();
+        _themeButton.Text = _lightTheme ? (_hebrew ? "☾ מצב כהה" : "☾ Dark mode") : (_hebrew ? "☼ מצב בהיר" : "☼ Light mode");
+        Invalidate(true);
+    }
+
+    private static IEnumerable<Control> GetAllControls(Control parent)
+    {
+        foreach (Control child in parent.Controls)
+        {
+            yield return child;
+            foreach (var nested in GetAllControls(child)) yield return nested;
+        }
     }
 
     private void RefreshEntries()
