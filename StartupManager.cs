@@ -274,8 +274,15 @@ public sealed class StartupManager
     public int DisabledBackupCount()
     {
         var count = 0;
-        using (var key = Registry.CurrentUser.OpenSubKey(RegistryBackup)) count += key?.GetValueNames().Length ?? 0;
-        try { count += Directory.EnumerateFiles(_backupRoot, "*.json").Count(); } catch { }
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RegistryBackup);
+            count += key?.GetValueNames().Length ?? 0;
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException) { }
+
+        try { count += Directory.EnumerateFiles(_backupRoot, "*.json").Count(); }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException) { }
         return count;
     }
 
