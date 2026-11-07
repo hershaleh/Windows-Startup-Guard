@@ -110,7 +110,7 @@ public sealed class MainForm : Form
     {
         _grid.Rows.Clear(); var query = _search.Text.Trim(); var filter = _filter.SelectedIndex;
         foreach (var item in _entries.Where(x => (query.Length == 0 || x.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || x.Command.Contains(query, StringComparison.OrdinalIgnoreCase) || x.Publisher.Contains(query, StringComparison.OrdinalIgnoreCase)) &&
-            (filter == 0 || (filter == 1 && x.Scope == StartupScope.CurrentUser) || (filter == 2 && x.Scope == StartupScope.AllUsers)))
+            (filter == 0 || (filter == 1 && x.Scope == StartupScope.CurrentUser) || (filter == 2 && x.Scope == StartupScope.AllUsers))))
         {
             var rowIndex = _grid.Rows.Add(item.Name, item.Publisher, _hebrew ? "מופעל" : "Enabled", item.MemoryMb,
                 item.Source == StartupSource.Registry ? "Registry" : "Startup folder", item.Scope == StartupScope.AllUsers ? "All users" : "Current user",
