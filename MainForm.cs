@@ -24,6 +24,7 @@ public sealed class MainForm : Form
     private readonly Button _restoreButton = new();
     private readonly Button _exportButton = new();
     private readonly Button _guideButton = new();
+    private readonly Button _reportButton = new();
     private readonly PictureBox _creditImage = new();
     private readonly LinkLabel _creditLink = new();
     private readonly Panel _creditPanel = new();
@@ -40,7 +41,8 @@ public sealed class MainForm : Form
     public MainForm()
     {
         Text = "Windows Startup Guard"; MinimumSize = new Size(1000, 650); Size = new Size(1220, 780);
-        StartPosition = FormStartPosition.CenterScreen; BackColor = _background; ForeColor = Color.White;
+        StartPosition = FormStartPosition.CenterScreen; BackColor = _background; ForeColor = _textColor;
+        Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         Font = new Font("Segoe UI", 9.5f); BuildUi(); ApplyLanguage(); RefreshEntries();
     }
 
@@ -59,6 +61,8 @@ public sealed class MainForm : Form
         _guideButton.Size = new Size(112, 36);
         ConfigureButton(_themeButton, "☼ מצב בהיר", false, (_, _) => { _lightTheme = !_lightTheme; ApplyTheme(); });
         _themeButton.Size = new Size(112, 36);
+        ConfigureButton(_reportButton, "⚑ דיווח תקלה", false, (_, _) => ReportProblem());
+        _reportButton.Size = new Size(112, 36);
         _creditPanel.Size = new Size(176, 56); _creditPanel.BackColor = _surface;
         _creditPanel.Paint += (_, e) => ControlPaint.DrawBorder(e.Graphics, _creditPanel.ClientRectangle, Color.FromArgb(75, 85, 99), ButtonBorderStyle.Solid);
         _creditImage.Size = new Size(46, 46); _creditImage.SizeMode = PictureBoxSizeMode.Zoom; _creditImage.Location = new Point(6, 5);
@@ -70,14 +74,14 @@ public sealed class MainForm : Form
         _creditPanel.Controls.AddRange([_creditImage, creditCaption, _creditLink]);
         var headerActions = new FlowLayoutPanel
         {
-            Dock = DockStyle.Right, Width = 536, Height = 60, WrapContents = false,
+            Dock = DockStyle.Right, Width = 664, Height = 60, WrapContents = false,
             FlowDirection = FlowDirection.RightToLeft, BackColor = _background,
             Padding = new Padding(0), Margin = new Padding(0)
         };
-        foreach (var action in new Control[] { language, _themeButton, _guideButton })
+        foreach (var action in new Control[] { language, _themeButton, _guideButton, _reportButton })
             action.Margin = new Padding(4, 10, 4, 0);
         _creditPanel.Margin = new Padding(4, 2, 4, 0);
-        headerActions.Controls.AddRange([language, _themeButton, _guideButton, _creditPanel]);
+        headerActions.Controls.AddRange([language, _themeButton, _guideButton, _reportButton, _creditPanel]);
         header.Controls.AddRange([title, _subtitle, headerActions]);
         header.PerformLayout();
         root.Controls.Add(header, 0, 0);
@@ -127,6 +131,8 @@ public sealed class MainForm : Form
     private Panel MakeCard(string heading, Label value, string detail, int index)
     {
         var card = new Panel { Name = "SummaryCard", Dock = DockStyle.Fill, BackColor = _surface, Margin = new Padding(0, 0, 12, 0), Padding = new Padding(14) };
+        card.Resize += (_, _) => ApplyRoundedRegion(card, 16);
+        ApplyRoundedRegion(card, 16);
         var h = new Label { Text = heading, ForeColor = Color.FromArgb(156, 163, 175), Font = new Font("Segoe UI Semibold", 8, FontStyle.Bold), Location = new Point(14, 10), AutoSize = true };
         _cardHeadings[index] = h;
         value.Text = "—"; value.ForeColor = Color.White; value.Font = new Font("Segoe UI Semibold", 22, FontStyle.Bold); value.Location = new Point(14, 30); value.AutoSize = true;
@@ -191,6 +197,7 @@ public sealed class MainForm : Form
         _restoreButton.Text = _hebrew ? "↶  שחזור גיבויים" : "↶  Restore backups";
         _exportButton.Text = _hebrew ? "⇩ ייצוא CSV" : "⇩ Export CSV";
         _guideButton.Text = _hebrew ? "מדריך" : "Guide";
+        _reportButton.Text = _hebrew ? "⚑ דיווח תקלה" : "⚑ Report a problem";
         _creditLink.Text = _hebrew ? "הערשלה" : "Hershaleh";
         _themeButton.Text = _lightTheme ? (_hebrew ? "☾ מצב כהה" : "☾ Dark mode") : (_hebrew ? "☼ מצב בהיר" : "☼ Light mode");
         var restoreSelectedButton = Controls.Find("RestoreSelectedButton", true).OfType<Button>().FirstOrDefault();
@@ -206,6 +213,17 @@ public sealed class MainForm : Form
             ? (_hebrew ? "הרשאות מנהל" : "Administrator")
             : (_hebrew ? "משתמש רגיל — שינוי פריטי כל המשתמשים עשוי לדרוש מנהל" : "Standard user — changing all-user items may require admin");
         ApplyTheme();
+    }
+
+    private void ReportProblem()
+    {
+        try
+        {
+            var url = ErrorReporter.CreateIssueUrl(_hebrew);
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            _status.Text = _hebrew ? "נפתח טופס דיווח ב-GitHub — יש לבדוק ולשלוח" : "GitHub report form opened — review and submit";
+        }
+        catch (Exception ex) { ShowError(ex); }
     }
 
     private void ShowGuide()
@@ -313,7 +331,7 @@ public sealed class MainForm : Form
         {
             if (control == _grid || control == _creditImage || control == _creditLink) continue;
             if (control == _disableButton || control == _guideButton) { control.BackColor = _blue; control.ForeColor = Color.White; }
-            else if (control is Button) { control.BackColor = _surface; control.ForeColor = _textColor; }
+            else if (control is Button button) { button.BackColor = button == _disableButton || button == _guideButton ? _blue : _surface; button.ForeColor = button == _disableButton || button == _guideButton ? Color.White : _textColor; button.FlatAppearance.BorderColor = _lightTheme ? Color.FromArgb(203, 213, 225) : Color.FromArgb(75, 85, 99); }
             else if (control is TextBoxBase || control is ComboBox) { control.BackColor = _surface; control.ForeColor = _textColor; }
             else if (control is Label) control.ForeColor = control == _subtitle || _cardDetails.Contains(control) || _cardHeadings.Contains(control) ? _mutedColor : _textColor;
             else if (control is Panel panel && (panel == _creditPanel || panel.Name == "SummaryCard")) panel.BackColor = _surface;
@@ -321,9 +339,12 @@ public sealed class MainForm : Form
             else if (control is StatusStrip strip) { strip.BackColor = _background; strip.ForeColor = _mutedColor; }
         }
         _grid.BackgroundColor = _surface;
-        _grid.ColumnHeadersDefaultCellStyle.BackColor = _lightTheme ? Color.FromArgb(226, 232, 240) : Color.FromArgb(55, 65, 81);
+        _grid.ColumnHeadersDefaultCellStyle.BackColor = _lightTheme ? Color.FromArgb(219, 234, 254) : Color.FromArgb(55, 65, 81);
         _grid.ColumnHeadersDefaultCellStyle.ForeColor = _textColor;
         _grid.DefaultCellStyle.BackColor = _surface; _grid.DefaultCellStyle.ForeColor = _textColor;
+        _grid.DefaultCellStyle.SelectionBackColor = _lightTheme ? Color.FromArgb(191, 219, 254) : Color.FromArgb(37, 99, 160);
+        _grid.DefaultCellStyle.SelectionForeColor = _lightTheme ? Color.FromArgb(15, 23, 42) : Color.White;
+        _grid.RowTemplate.Height = 34;
         _grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(37, 99, 160); _grid.DefaultCellStyle.SelectionForeColor = Color.White;
         _grid.AlternatingRowsDefaultCellStyle.BackColor = _lightTheme ? Color.FromArgb(241, 245, 249) : Color.FromArgb(36, 47, 63);
         _status.Owner?.Invalidate();
