@@ -85,6 +85,11 @@ Test-Contract 'Guide text uses theme-aware foreground' $form 'ForeColor = _textC
 Test-Contract 'Header actions share aligned flow layout' $form 'FlowDirection = FlowDirection.RightToLeft'
 Test-Contract 'Header action buttons have equal widths' $form '_guideButton.Size = new Size(112, 36)'
 
+
+Test-Contract 'Buttons use rounded regions' $form 'ApplyRoundedRegion(button, 12)'
+Test-Contract 'Buttons have hover feedback' $form 'FlatAppearance.MouseOverBackColor'
+Test-Contract 'Modern drawing smoothing' $form 'using System.Drawing.Drawing2D;'
+
 Write-Host "Regression checks passed: $passed"
 if ($failed.Count -gt 0) { Write-Host "Regression checks failed ($($failed.Count)):"; $failed | ForEach-Object { Write-Host " - $_" }; exit 1 }
 if ($passed -lt 45) { throw "Expected at least 45 regression checks; ran $passed." }
