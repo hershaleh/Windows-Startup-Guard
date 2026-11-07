@@ -15,7 +15,7 @@ A free, open-source Windows desktop utility for discovering and managing common 
 - Best-effort RAM estimate for matching running processes (shared process memory is counted once per executable name in the dashboard total).
 - Disable selected entries with a local backup.
 - Clear status-bar indication when running as administrator or a standard user, including a note that all-user changes may require elevation.
-- Restore registry values and Startup folder files disabled by this app.
+- Restore registry values and Startup folder files disabled by this app, with a per-item result summary showing restored, skipped, and failed items.
 - Optional process-close action with an explicit confirmation.
 - No silent cleanup, no automatic deletion, and no external services.
 
