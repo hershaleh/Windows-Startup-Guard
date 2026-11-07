@@ -106,8 +106,8 @@ public sealed class StartupManager
         var data = source.GetValue(parts[3], null, RegistryValueOptions.DoNotExpandEnvironmentNames) ?? throw new InvalidOperationException("The startup value no longer exists.");
         using var backup = Registry.CurrentUser.CreateSubKey(RegistryBackup, true)!;
         var backupName = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(entry.Id));
-        var serializedData = data is byte[] bytes ? Convert.ToBase64String(bytes) : data.ToString() ?? "";
-        backup.SetValue(backupName, JsonSerializer.Serialize(new RegistryRecord(parts[1], parts[2], parts[3], kind.ToString(), serializedData, data is byte[])), RegistryValueKind.String);
+        var serializedData = data is byte[] bytes ? Convert.ToBase64String(bytes) : data is string[] strings ? JsonSerializer.Serialize(strings) : data.ToString() ?? "";
+        backup.SetValue(backupName, JsonSerializer.Serialize(new RegistryRecord(parts[1], parts[2], parts[3], kind.ToString(), serializedData, data is byte[], data is string[])), RegistryValueKind.String);
         source.DeleteValue(parts[3], false);
     }
 
@@ -134,9 +134,9 @@ public sealed class StartupManager
                         var hive = record.Hive.Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) ? Registry.CurrentUser : Registry.LocalMachine;
                         using var target = hive.CreateSubKey(record.Path, true)!;
                         var kind = Enum.Parse<RegistryValueKind>(record.Kind);
-                        object value = record.IsBinary ? Convert.FromBase64String(record.Data) : record.Data;
-                        if (!record.IsBinary && kind == RegistryValueKind.DWord && int.TryParse(record.Data, out var d)) value = d;
-                        if (!record.IsBinary && kind == RegistryValueKind.QWord && long.TryParse(record.Data, out var q)) value = q;
+                        object value = record.IsBinary ? Convert.FromBase64String(record.Data) : record.IsMultiString ? JsonSerializer.Deserialize<string[]>(record.Data) ?? [] : record.Data;
+                        if (!record.IsBinary && !record.IsMultiString && kind == RegistryValueKind.DWord && int.TryParse(record.Data, out var d)) value = d;
+                        if (!record.IsBinary && !record.IsMultiString && kind == RegistryValueKind.QWord && long.TryParse(record.Data, out var q)) value = q;
                         target.SetValue(record.Name, value, kind);
                         backup.DeleteValue(name, false);
                         result.Add("Restored registry item: " + record.Name);
@@ -179,6 +179,6 @@ public sealed class StartupManager
         return count;
     }
 
-    private sealed record RegistryRecord(string Hive, string Path, string Name, string Kind, string Data, bool IsBinary);
+    private sealed record RegistryRecord(string Hive, string Path, string Name, string Kind, string Data, bool IsBinary, bool IsMultiString = false);
     private sealed record FileRecord(string OriginalPath);
 }
