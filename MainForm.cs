@@ -64,7 +64,8 @@ public sealed class MainForm : Form
         ConfigureButton(_reportButton, "⚑ דיווח תקלה", false, (_, _) => ReportProblem());
         _reportButton.Size = new Size(112, 36);
         _creditPanel.Size = new Size(176, 56); _creditPanel.BackColor = _surface;
-        _creditPanel.Paint += (_, e) => ControlPaint.DrawBorder(e.Graphics, _creditPanel.ClientRectangle, Color.FromArgb(75, 85, 99), ButtonBorderStyle.Solid);
+        _creditPanel.Paint += (_, e) => ControlPaint.DrawBorder(e.Graphics, _creditPanel.ClientRectangle,
+            _lightTheme ? Color.FromArgb(203, 213, 225) : Color.FromArgb(75, 85, 99), ButtonBorderStyle.Solid);
         _creditImage.Size = new Size(46, 46); _creditImage.SizeMode = PictureBoxSizeMode.Zoom; _creditImage.Location = new Point(6, 5);
         using (var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WindowsStartupGuard.Assets.hershaleh.jpg"))
             if (stream != null) { using var sourceImage = new Bitmap(stream); _creditImage.Image = new Bitmap(sourceImage); }
@@ -346,8 +347,12 @@ public sealed class MainForm : Form
         _grid.DefaultCellStyle.SelectionForeColor = _lightTheme ? Color.FromArgb(15, 23, 42) : Color.White;
         _grid.RowTemplate.Height = 34;
         _grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(37, 99, 160); _grid.DefaultCellStyle.SelectionForeColor = Color.White;
-        _grid.AlternatingRowsDefaultCellStyle.BackColor = _lightTheme ? Color.FromArgb(241, 245, 249) : Color.FromArgb(36, 47, 63);
+        _grid.AlternatingRowsDefaultCellStyle.BackColor = _lightTheme ? Color.FromArgb(248, 250, 252) : Color.FromArgb(36, 47, 63);
+        _grid.GridColor = _lightTheme ? Color.FromArgb(226, 232, 240) : Color.FromArgb(55, 65, 81);
+        _grid.ColumnHeadersHeight = 38;
+        _grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
         _status.Owner?.Invalidate();
+        _creditPanel.Invalidate();
         _themeButton.Text = _lightTheme ? (_hebrew ? "☾ מצב כהה" : "☾ Dark mode") : (_hebrew ? "☼ מצב בהיר" : "☼ Light mode");
         Invalidate(true);
     }
@@ -505,5 +510,9 @@ public sealed class MainForm : Form
         return "\"" + value.Replace("\"", "\"\"") + "\"";
     }
 
-    private void ShowError(Exception ex) => MessageBox.Show(ex.Message, _hebrew ? "שגיאה" : "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+    private void ShowError(Exception ex)
+    {
+        ErrorReporter.LogException(ex, "Handled UI error");
+        MessageBox.Show(ex.Message, _hebrew ? "שגיאה" : "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+    }
 }
