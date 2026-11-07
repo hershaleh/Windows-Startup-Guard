@@ -65,8 +65,6 @@ public sealed class MainForm : Form
         ConfigureButton(_stopButton, "■  Stop process", false, (_, _) => StopSelected());
         ConfigureButton(_restoreButton, "↶  Restore backups", false, (_, _) => RestoreBackups());
         ConfigureButton(_exportButton, "⇩ Export CSV", false, (_, _) => ExportCsv());
-        var restoreSelectedButton = MakeButton(_hebrew ? "שחזור נבחר" : "Restore selected", false, (_, _) => RestoreSelected());
-        restoreSelectedButton.Name = "RestoreSelectedButton";
         var restoreSelectedButton = MakeButton("Restore selected", false, (_, _) => RestoreSelected());
         restoreSelectedButton.Name = "RestoreSelectedButton";
         toolbar.Controls.AddRange([_refreshButton, _disableButton, _stopButton, restoreSelectedButton, _restoreButton, _exportButton]);
