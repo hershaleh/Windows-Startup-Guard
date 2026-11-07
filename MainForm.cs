@@ -53,12 +53,12 @@ public sealed class MainForm : Form
         var title = new Label { Text = "Startup Guard", Font = new Font("Segoe UI Semibold", 25, FontStyle.Bold), ForeColor = Color.White, AutoSize = true, Location = new Point(0, 0) };
         _subtitle.Text = "Take control of what starts with Windows"; _subtitle.ForeColor = Color.FromArgb(156, 163, 175); _subtitle.AutoSize = true; _subtitle.Location = new Point(3, 49);
         var language = MakeButton("עברית / EN", false, (_, _) => { _hebrew = !_hebrew; ApplyLanguage(); });
-        language.Size = new Size(112, 36); language.Anchor = AnchorStyles.Top | AnchorStyles.Right; language.Location = new Point(900, 10);
+        language.Size = new Size(112, 36);
         ConfigureButton(_guideButton, "מדריך", true, (_, _) => ShowGuide());
-        _guideButton.Size = new Size(92, 36); _guideButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        _guideButton.Size = new Size(112, 36);
         ConfigureButton(_themeButton, "☼ מצב בהיר", false, (_, _) => { _lightTheme = !_lightTheme; ApplyTheme(); });
-        _themeButton.Size = new Size(112, 36); _themeButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-        _creditPanel.Size = new Size(176, 56); _creditPanel.BackColor = _surface; _creditPanel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        _themeButton.Size = new Size(112, 36);
+        _creditPanel.Size = new Size(176, 56); _creditPanel.BackColor = _surface;
         _creditPanel.Paint += (_, e) => ControlPaint.DrawBorder(e.Graphics, _creditPanel.ClientRectangle, Color.FromArgb(75, 85, 99), ButtonBorderStyle.Solid);
         _creditImage.Size = new Size(46, 46); _creditImage.SizeMode = PictureBoxSizeMode.Zoom; _creditImage.Location = new Point(6, 5);
         using (var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WindowsStartupGuard.Assets.hershaleh.jpg"))
@@ -67,8 +67,17 @@ public sealed class MainForm : Form
         _creditLink.AutoSize = true; _creditLink.LinkColor = Color.FromArgb(96, 165, 250); _creditLink.ActiveLinkColor = Color.FromArgb(59, 130, 246); _creditLink.Text = "הערשלה"; _creditLink.Font = new Font("Segoe UI Semibold", 10, FontStyle.Bold); _creditLink.Location = new Point(62, 25);
         _creditLink.LinkClicked += (_, _) => Process.Start(new ProcessStartInfo("https://mitmachim.top/user/%D7%94%D7%A2%D7%A8%D7%A9%D7%9C%D7%94") { UseShellExecute = true });
         _creditPanel.Controls.AddRange([_creditImage, creditCaption, _creditLink]);
-        header.Controls.AddRange([title, _subtitle, language, _themeButton, _guideButton, _creditPanel]);
-        header.Resize += (_, _) => { language.Left = header.ClientSize.Width - language.Width; _themeButton.Left = language.Left - _themeButton.Width - 8; _guideButton.Left = _themeButton.Left - _guideButton.Width - 8; _creditPanel.Left = _guideButton.Left - _creditPanel.Width - 12; _creditPanel.Top = 0; };
+        var headerActions = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Right, Width = 536, Height = 60, WrapContents = false,
+            FlowDirection = FlowDirection.RightToLeft, BackColor = _background,
+            Padding = new Padding(0), Margin = new Padding(0)
+        };
+        foreach (var action in new Control[] { language, _themeButton, _guideButton })
+            action.Margin = new Padding(4, 10, 4, 0);
+        _creditPanel.Margin = new Padding(4, 2, 4, 0);
+        headerActions.Controls.AddRange([language, _themeButton, _guideButton, _creditPanel]);
+        header.Controls.AddRange([title, _subtitle, headerActions]);
         header.PerformLayout();
         root.Controls.Add(header, 0, 0);
 
@@ -185,12 +194,86 @@ public sealed class MainForm : Form
             StartPosition = FormStartPosition.CenterParent, Size = new Size(780, 680), MinimumSize = new Size(620, 500),
             BackColor = _background, ForeColor = Color.White, Font = new Font("Segoe UI", 10),
             RightToLeft = _hebrew ? RightToLeft.Yes : RightToLeft.No, RightToLeftLayout = _hebrew, ShowInTaskbar = false };
-        var content = new TextBox { Multiline = true, ReadOnly = true, WordWrap = true, ScrollBars = ScrollBars.Vertical,
-            Dock = DockStyle.Fill, BorderStyle = BorderStyle.None, BackColor = _surface, ForeColor = Color.FromArgb(229, 231, 235),
-            Font = new Font("Segoe UI", 10.5f), Padding = new Padding(16), RightToLeft = _hebrew ? RightToLeft.Yes : RightToLeft.No };
-        content.Text = _hebrew
-            ? "מדריך פשוט — מה לעשות בכל מצב?\r\n\r\nהמטרה של התוכנה\r\nלמנוע מתוכנות מיותרות להיפתח לבד בכל הפעלה של Windows. כך אפשר לצמצם עומס בזמן הכניסה למחשב. התוכנה לא מסירה תוכנות מהמחשב — היא רק משנה אם הן יופעלו אוטומטית.\r\n\r\nאיזו בעיה יש לך?\r\n• המחשב עולה לאט או נפתחות הרבה תוכנות? סמן בטבלה תוכנות שאתה מזהה ואינך צריך מיד עם הפעלת המחשב, ואז לחץ על ״נטרול נבחרים״. בפעם הבאה הן לא אמורות להיפתח אוטומטית.\r\n• תוכנה שהפסקת להפעיל אוטומטית חסרה לך? סמן את השורה שמסומנת ״מושבת״ ולחץ על ״שחזור נבחר״. אפשר גם להחזיר את כל הגיבויים באמצעות ״שחזור גיבויים״.\r\n• תוכנה פתוחה לא מגיבה? בחר את הפריט שלה ולחץ על ״סגירת תהליך״. זו בקשה לסגירה רגילה בלבד; שמור עבודה לפני כן. הכפתור אינו מונע מהתוכנה לעלות שוב באתחול הבא.\r\n• אתה רוצה לשמור את הרשימה או לשלוח אותה לתמיכה? לחץ על ״ייצוא CSV״ ושמור את הקובץ.\r\n• הרשימה לא עדכנית? לחץ על ״רענון״ כדי לסרוק שוב.\r\n\r\nמה עושה כל כפתור?\r\n• רענון — בודק מחדש אילו תוכנות מוגדרות להפעלה אוטומטית.\r\n• נטרול נבחרים — מוציא את השורות המסומנות מרשימת ההפעלה האוטומטית ושומר גיבוי כדי שאפשר יהיה להחזיר אותן. התוכנה עצמה נשארת מותקנת.\r\n• סגירת תהליך — מבקש מתוכנה שכבר פועלת להיסגר בצורה רגילה. זה לא מסיר אותה מהאתחול.\r\n• שחזור נבחר — מחזיר להפעלה אוטומטית רק את הגיבויים שסימנת.\r\n• שחזור גיבויים — מחזיר את כל הגיבויים האפשריים. אם היעד כבר תפוס, הוא לא יידרס.\r\n• ייצוא CSV — יוצר קובץ שאפשר לפתוח בתוכנת גיליונות או לצרף לפנייה לתמיכה.\r\n\r\nאיך משתמשים ברשימה?\r\nחפש לפי שם תוכנה, מפרסם או פקודה. המסנן מאפשר להציג פריטים של המשתמש הנוכחי או של כלל המשתמשים. השורה ״מופעל״ מציינת שהתוכנה מוגדרת לעלות אוטומטית; ״מושבת״ מציינת שיש לה גיבוי והיא אינה אמורה לעלות ממקור זה.\r\n\r\nאיך להימנע מתקלה?\r\nנטרל רק תוכנות שאתה מזהה ויודע שאינך צריך בהפעלה. אל תיגע ברכיבי אבטחה, גיבוי, מנהלי התקנים או רכיבי Windows שאינך מכיר. אם אינך בטוח — אל תשנה. פריטים של כלל המשתמשים עשויים לדרוש הפעלה כמנהל.\r\n\r\nמה התוכנה עדיין לא בודקת?\r\nהגרסה הנוכחית בודקת את רשומות Run/RunOnce ואת תיקיות האתחול בלבד. היא אינה מציגה שירותי Windows או משימות מתוזמנות. נתון הזיכרון הוא אומדן של תהליכים בעלי שם תואם, ולא מדידה מדויקת של השימוש של התוכנה."
-            : "QUICK GUIDE — WHAT SHOULD I DO?\r\n\r\nWhat this app does\r\nIt helps stop unnecessary apps from opening automatically whenever Windows starts. This can reduce the number of apps competing during sign-in. It does not uninstall apps; it only changes whether they launch automatically.\r\n\r\nChoose the problem you want to solve\r\n• Too many apps open when you turn on the PC? Select apps you recognize and do not need immediately, then click “Disable selected”. They should no longer launch automatically.\r\n• An app you disabled is missing from startup? Select its “Disabled” row and click “Restore selected”. Or use “Restore backups” to bring back all restorable items.\r\n• An already-open app is not responding? Select its item and click “Stop process”. This only requests a normal close. Save your work first. It does not prevent the app from launching next time.\r\n• Need to save or share the inventory? Click “Export CSV” and save the file.\r\n• The list may be out of date? Click “Refresh” to scan again.\r\n\r\nWhat each button does\r\n• Refresh — checks again which apps are configured to start automatically.\r\n• Disable selected — removes selected entries from automatic startup and keeps a backup so you can undo the change. The app remains installed.\r\n• Stop process — asks an already-running app to close normally. It does not remove the app from startup.\r\n• Restore selected — returns only the selected backups to automatic startup.\r\n• Restore backups — attempts to return all backups. Existing targets are not overwritten.\r\n• Export CSV — creates a file you can open in a spreadsheet or attach to a support request.\r\n\r\nUsing the list\r\nSearch by app name, publisher, or command. The filter shows entries for the current user or all users. “Enabled” means an app is configured to start automatically. “Disabled” means a backup exists and it should no longer launch from that location.\r\n\r\nAvoiding problems\r\nDisable only apps you recognize and know you do not need at startup. Do not change security, backup, driver, or Windows components you do not understand. If unsure, leave the item alone. All-users entries may require administrator rights.\r\n\r\nCurrent limitations\r\nThis version checks Run/RunOnce registry entries and Startup folders only. It does not list Windows services or scheduled tasks. RAM is an estimate based on matching process names, not an exact measurement for the app itself.";
+        var content = new RichTextBox
+        {
+            ReadOnly = true, DetectUrls = true, WordWrap = true, ScrollBars = RichTextBoxScrollBars.Vertical,
+            Dock = DockStyle.Fill, BorderStyle = BorderStyle.None, BackColor = _surface, ForeColor = _textColor,
+            Font = new Font("Segoe UI", 10.5f), Padding = new Padding(16),
+            RightToLeft = _hebrew ? RightToLeft.Yes : RightToLeft.No
+        };
+        void AddGuideHeading(string text)
+        {
+            content.SelectionStart = content.TextLength;
+            content.SelectionLength = 0;
+            content.SelectionFont = new Font("Segoe UI Semibold", 13, FontStyle.Bold);
+            content.SelectionColor = _blue;
+            content.AppendText(text + Environment.NewLine);
+            content.SelectionFont = new Font("Segoe UI", 10.5f);
+            content.SelectionColor = _textColor;
+        }
+        void AddGuideParagraph(string text)
+        {
+            content.SelectionStart = content.TextLength;
+            content.SelectionLength = 0;
+            content.SelectionFont = new Font("Segoe UI", 10.5f);
+            content.SelectionColor = _textColor;
+            content.AppendText(text + Environment.NewLine + Environment.NewLine);
+        }
+        void AddGuideBullet(string title, string description)
+        {
+            content.SelectionStart = content.TextLength;
+            content.SelectionLength = 0;
+            content.SelectionFont = new Font("Segoe UI Semibold", 10.5f, FontStyle.Bold);
+            content.SelectionColor = _textColor;
+            content.AppendText("• " + title + " — ");
+            content.SelectionFont = new Font("Segoe UI", 10.5f);
+            content.SelectionColor = _textColor;
+            content.AppendText(description + Environment.NewLine + Environment.NewLine);
+        }
+        if (_hebrew)
+        {
+            AddGuideHeading("מה התוכנה עושה?");
+            AddGuideParagraph("Windows Startup Guard מציגה את התוכנות שמוגדרות להיפתח אוטומטית עם Windows. היא מאפשרת למנוע מהן להיפתח לבד, בלי להסיר אותן מהמחשב. השינוי נשמר גם לאחר הפעלה מחדש. עדכון של תוכנה מסוימת עלול להוסיף אותה מחדש לרשימת האתחול, ולכן כדאי לבדוק שוב לאחר עדכונים.");
+            AddGuideHeading("מה עושים בכל מצב?");
+            AddGuideBullet("המחשב עולה לאט או נפתחות הרבה תוכנות", "סמן תוכנות שאתה מזהה ואינך צריך מיד עם הפעלת המחשב, ולחץ על ״נטרול נבחרים״. הן לא אמורות להיפתח אוטומטית באתחול הבא. הן נשארות מותקנות ואפשר לפתוח אותן ידנית.");
+            AddGuideBullet("תוכנה שנוטרלה צריכה לחזור להפעלה האוטומטית", "סמן את השורה שמסומנת ״מושבת״ ולחץ על ״שחזור נבחר״. השחזור נשמר גם לאחר הפעלה מחדש, והתוכנה עשויה להיפתח באתחול הבא.");
+            AddGuideBullet("תוכנה פתוחה אינה מגיבה", "בחר את הפריט ולחץ על ״סגירת תהליך״. נשלחת בקשה לסגירה רגילה בלבד. שמור עבודה לפני כן. אם התוכנה עדיין מוגדרת להפעלה אוטומטית, היא עשויה להיפתח שוב באתחול הבא.");
+            AddGuideBullet("צריך לשמור או לשלוח את הרשימה", "לחץ על ״ייצוא CSV״ ושמור קובץ שאפשר לפתוח ב-Excel או לצרף לפנייה לתמיכה. הייצוא אינו משנה הגדרות.");
+            AddGuideBullet("הרשימה אינה עדכנית", "לחץ על ״רענון״ כדי לסרוק מחדש. הרענון אינו משנה הגדרות.");
+            AddGuideHeading("הסבר על הכפתורים");
+            AddGuideBullet("רענון", "סורק מחדש את פריטי האתחול ומעדכן את הרשימה בלבד.");
+            AddGuideBullet("נטרול נבחרים", "מוציא את הפריטים המסומנים ממנגנון ההפעלה האוטומטית ושומר גיבוי. הנטרול נשאר לאחר הפעלה מחדש; עדכון של התוכנה עצמה עלול להוסיף אותה מחדש.");
+            AddGuideBullet("סגירת תהליך", "מבקש לסגור תוכנה שכבר פועלת. אינו משנה את הגדרת האתחול, ולכן היא עשויה להיפתח שוב באתחול הבא.");
+            AddGuideBullet("שחזור נבחר", "מחזיר להפעלה האוטומטית רק את הגיבויים שסימנת. השינוי נשמר לאחר הפעלה מחדש.");
+            AddGuideBullet("שחזור גיבויים", "מנסה להחזיר את כל הגיבויים. אם היעד המקורי כבר תפוס, הוא לא יידרס והפריט עשוי להידלג.");
+            AddGuideBullet("ייצוא CSV", "שומר את הרשימה המוצגת בקובץ CSV. אינו משנה את המחשב.");
+            AddGuideHeading("איך לקרוא את הרשימה?");
+            AddGuideParagraph("אפשר לחפש לפי שם תוכנה, מפרסם או פקודה, ולסנן לפי המשתמש הנוכחי או כלל המשתמשים. ״מופעל״ פירושו שהפריט מוגדר לעלות אוטומטית; ״מושבת״ פירושו שהפריט גובה ונוטרל ממקור האתחול הזה.");
+            AddGuideHeading("זהירות ומגבלות");
+            AddGuideParagraph("נטרל רק תוכנות שאתה מזהה ויודע שאינך צריך בזמן הפעלת המחשב. אל תשנה רכיבי אבטחה, גיבוי, מנהלי התקנים או רכיבי Windows שאינך מכיר. פריטים של כלל המשתמשים עשויים לדרוש הרשאות מנהל. הגרסה הנוכחית בודקת רשומות Run/RunOnce ותיקיות אתחול בלבד; היא אינה מציגה שירותי Windows או משימות מתוזמנות. נתון הזיכרון הוא אומדן ולא מדידה מדויקת.");
+        }
+        else
+        {
+            AddGuideHeading("What does this app do?");
+            AddGuideParagraph("Windows Startup Guard lists apps configured to open automatically when Windows starts. It lets you stop them from launching automatically without uninstalling them. Changes remain after restarting Windows. An app update may add its startup entry again, so check the list after updates.");
+            AddGuideHeading("Choose the situation you want to fix");
+            AddGuideBullet("The PC starts slowly or too many apps open", "Select apps you recognize and do not need immediately, then click “Disable selected”. They should not launch automatically at the next startup. They remain installed and can still be opened manually.");
+            AddGuideBullet("You want a disabled app back in startup", "Select its “Disabled” row and click “Restore selected”. The change remains after restart, and the app may launch at the next startup.");
+            AddGuideBullet("An open app is not responding", "Select it and click “Stop process”. The app receives a normal close request only. Save your work first. If it is still configured for startup, it may open again next time.");
+            AddGuideBullet("You need to save or share the list", "Click “Export CSV” to create a file for Excel or support. Exporting does not change settings.");
+            AddGuideBullet("The list may be out of date", "Click “Refresh” to scan again. Refreshing does not change settings.");
+            AddGuideHeading("What each button does");
+            AddGuideBullet("Refresh", "Scans startup locations again and updates the list only.");
+            AddGuideBullet("Disable selected", "Removes selected entries from automatic startup and saves a backup. The change remains after restart; an app update may add the entry again.");
+            AddGuideBullet("Stop process", "Requests a normal close for an app that is already running. It does not change startup settings, so the app may launch again next time.");
+            AddGuideBullet("Restore selected", "Returns only selected backups to automatic startup. The change remains after restart.");
+            AddGuideBullet("Restore backups", "Attempts to restore all backups. Existing targets are not overwritten, so some items may be skipped.");
+            AddGuideBullet("Export CSV", "Saves the displayed list as a CSV file. It does not change the PC.");
+            AddGuideHeading("Understanding the list");
+            AddGuideParagraph("Search by app name, publisher, or command. Filter entries for the current user or all users. “Enabled” means the item is configured to launch automatically. “Disabled” means it was backed up and removed from that startup location.");
+            AddGuideHeading("Safety and limitations");
+            AddGuideParagraph("Disable only apps you recognize and know you do not need at startup. Do not change security, backup, driver, or Windows components you do not understand. All-users entries may require administrator rights. This version checks Run/RunOnce registry entries and Startup folders only; it does not list Windows services or scheduled tasks. RAM is an estimate, not an exact measurement.");
+        }
         var close = MakeButton(_hebrew ? "סגירה" : "Close", true, (_, _) => guide.Close());
         close.Dock = DockStyle.Bottom; close.Height = 42;
         var panel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(16), BackColor = _background };
