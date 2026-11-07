@@ -104,6 +104,34 @@ Test-Contract 'Icon generator script exists' (Get-Content (Join-Path $PSScriptRo
 Test-Contract 'Light theme enabled by default' $form 'private bool _lightTheme = true;'
 Test-Contract 'Dashboard cards use rounded corners' $form 'ApplyRoundedRegion(card, 16)'
 
+
+$wpfXaml = Get-Content (Join-Path $PSScriptRoot '..\MainWindow.xaml') -Raw
+$wpfCode = Get-Content (Join-Path $PSScriptRoot '..\MainWindow.xaml.cs') -Raw
+$dialogCode = Get-Content (Join-Path $PSScriptRoot '..\AppDialog.cs') -Raw
+$splashXaml = Get-Content (Join-Path $PSScriptRoot '..\SplashWindow.xaml') -Raw
+$appResources = Get-Content (Join-Path $PSScriptRoot '..\App.xaml') -Raw
+Test-Contract 'WPF header has separate action column' $wpfXaml '<ColumnDefinition Width="Auto"/>'
+Test-Contract 'WPF status and actions do not overlap' $wpfXaml 'Grid.Column="1" Orientation="Horizontal"'
+Test-Contract 'WPF startup loading bar grows right-to-left' $splashXaml 'HorizontalAlignment="Right" Background="#75A2FF"'
+Test-Contract 'WPF guide uses custom designed dialog' $wpfCode 'AppDialog.Guide(this, _dark, _hebrew)'
+Test-Contract 'Guide has detailed restore instructions' $dialogCode 'שחזור וביטול שינויים'
+Test-Contract 'Guide explains scan coverage' $dialogCode 'מה נכלל בסריקה?'
+Test-Contract 'Confirmations use modern themed dialogs' $wpfCode 'AppDialog.Confirm(this'
+Test-NotContains 'No legacy WPF message boxes' $wpfCode 'System.Windows.MessageBox.Show'
+Test-Contract 'Dark theme includes control backgrounds' $wpfCode '["ControlBg"]="#202F45"'
+Test-Contract 'Dark theme includes grid header colors' $wpfCode '["GridHeaderBg"]="#24334A"'
+Test-Contract 'Data grid rows use dynamic theme resources' $appResources 'DynamicResource GridAltBg'
+Test-Contract 'Creator avatar loaded from embedded resource' $wpfCode 'WindowsStartupGuard.Assets.hershaleh.jpg'
+Test-Contract 'Creator profile is clickable' $wpfXaml 'https://mitmachim.top/user/%D7%94%D7%A2%D7%A8%D7%A9%D7%9C%D7%94'
+Test-Contract 'Creator avatar is shown in sidebar' $wpfXaml 'x:Name="CreditAvatar"'
+Test-Contract 'Language toggle retained in WPF' $wpfXaml 'Click="Language_Click"'
+Test-Contract 'Language toggle updates RTL and LTR' $wpfCode 'FlowDirection = _hebrew ? FlowDirection.RightToLeft : FlowDirection.LeftToRight'
+Test-Contract 'Dashboard navigation is wired' $wpfXaml 'Click="Dashboard_Click"'
+Test-Contract 'Startup navigation is wired' $wpfXaml 'Click="Startup_Click"'
+Test-Contract 'Dashboard cards animate into view' $wpfCode 'AnimateCard(CardProtection, 280)'
+Test-Contract 'Window entrance animation retained' $wpfCode 'Root.BeginAnimation(OpacityProperty, fade)'
+Test-Contract 'Button hover animation in dialogs' $dialogCode 'DoubleAnimation(0.78'
+
 Write-Host "Regression checks passed: $passed"
 if ($failed.Count -gt 0) { Write-Host "Regression checks failed ($($failed.Count)):"; $failed | ForEach-Object { Write-Host " - $_" }; exit 1 }
 if ($passed -lt 45) { throw "Expected at least 45 regression checks; ran $passed." }
