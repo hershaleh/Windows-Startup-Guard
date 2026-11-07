@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Drawing.Drawing2D;
 using System.Security.Principal;
 
 namespace WindowsStartupGuard;
@@ -45,7 +46,7 @@ public sealed class MainForm : Form
 
     private void BuildUi()
     {
-        var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, Padding = new Padding(22), BackColor = _background };
+        var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, Padding = new Padding(24), BackColor = _background };
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 82)); root.RowStyles.Add(new RowStyle(SizeType.Absolute, 104));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 56)); root.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); Controls.Add(root);
 
@@ -144,10 +145,29 @@ public sealed class MainForm : Form
     private void ConfigureButton(Button button, string text, bool primary, EventHandler click)
     {
         button.Text = text; button.Size = new Size(primary ? 164 : 136, 36); button.Margin = new Padding(7, 0, 0, 0);
-        button.FlatStyle = FlatStyle.Flat; button.Cursor = Cursors.Hand;
+        button.FlatStyle = FlatStyle.Flat; button.Cursor = Cursors.Hand; button.UseVisualStyleBackColor = false;
         button.FlatAppearance.BorderSize = primary ? 0 : 1; button.FlatAppearance.BorderColor = Color.FromArgb(75, 85, 99);
         button.BackColor = primary ? _blue : _surface; button.ForeColor = Color.White; button.Font = new Font("Segoe UI Semibold", 9, FontStyle.Bold);
+        button.FlatAppearance.MouseOverBackColor = primary ? Color.FromArgb(29, 78, 216) : Color.FromArgb(71, 85, 105);
+        button.FlatAppearance.MouseDownBackColor = Color.FromArgb(30, 64, 175);
+        button.Padding = new Padding(10, 2, 10, 2);
+        button.Resize += (_, _) => ApplyRoundedRegion(button, 12);
+        ApplyRoundedRegion(button, 12);
         button.Click += click;
+    }
+
+    private static void ApplyRoundedRegion(Control control, int radius)
+    {
+        if (control.Width <= 0 || control.Height <= 0) return;
+        using var path = new GraphicsPath();
+        var diameter = radius * 2;
+        path.AddArc(0, 0, diameter, diameter, 180, 90);
+        path.AddArc(control.Width - diameter, 0, diameter, diameter, 270, 90);
+        path.AddArc(control.Width - diameter, control.Height - diameter, diameter, diameter, 0, 90);
+        path.AddArc(0, control.Height - diameter, diameter, diameter, 90, 90);
+        path.CloseFigure();
+        control.Region?.Dispose();
+        control.Region = new Region(path);
     }
 
     private void ApplyLanguage()
