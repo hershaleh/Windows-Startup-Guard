@@ -39,7 +39,6 @@ dotnet run --project WindowsStartupGuard.csproj
 
 - Show disabled entries and offer per-item restore.
 - Scheduled tasks and service inventory in a read-only advanced view.
-- Scheduled tasks and service inventory in a read-only advanced view.
 - Publisher and digital-signature information.
 - Startup impact history and launch-delay measurements.
 - Optional logon-time re-check (opt-in only).
