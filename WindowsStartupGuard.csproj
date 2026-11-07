@@ -10,4 +10,7 @@
     <RootNamespace>WindowsStartupGuard</RootNamespace>
     <Version>0.2.2</Version>
   </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\hershaleh.jpg" />
+  </ItemGroup>
 </Project>
