@@ -53,7 +53,7 @@ public sealed class MainForm : Form
         _guideButton.Size = new Size(92, 36); _guideButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _creditImage.Size = new Size(44, 44); _creditImage.SizeMode = PictureBoxSizeMode.Zoom; _creditImage.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         using (var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WindowsStartupGuard.Assets.hershaleh.jpg"))
-            if (stream != null) _creditImage.Image = Image.FromStream(stream);
+            if (stream != null) { using var sourceImage = new Bitmap(stream); _creditImage.Image = new Bitmap(sourceImage); }
         _creditLink.AutoSize = true; _creditLink.LinkColor = Color.FromArgb(147, 197, 253); _creditLink.Text = "הערשלה";
         _creditLink.LinkClicked += (_, _) => Process.Start(new ProcessStartInfo("https://mitmachim.top/user/%D7%94%D7%A2%D7%A8%D7%A9%D7%9C%D7%94") { UseShellExecute = true });
         header.Controls.AddRange([title, _subtitle, language, _guideButton, _creditImage, _creditLink]);
