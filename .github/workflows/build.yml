@@ -22,7 +22,7 @@ jobs:
       - name: Build Release
         run: dotnet build WindowsStartupGuard.csproj --configuration Release
       - name: Publish win-x64
-        run: dotnet publish WindowsStartupGuard.csproj --configuration Release --runtime win-x64 --self-contained false --output artifacts/win-x64
+        run: dotnet publish WindowsStartupGuard.csproj --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --output artifacts/win-x64
       - name: Upload application
         uses: actions/upload-artifact@v4
         with:
