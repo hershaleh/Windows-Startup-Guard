@@ -281,6 +281,7 @@ public sealed class StartupManager
 
     private static bool IsAllowedRegistryTarget(string hive, string path)
     {
+        if (string.IsNullOrWhiteSpace(hive)) return false;
         var validHive = hive.Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) ||
                         hive.Equals(Registry.LocalMachine.Name, StringComparison.OrdinalIgnoreCase);
         if (!validHive || string.IsNullOrWhiteSpace(path)) return false;
