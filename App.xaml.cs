@@ -11,10 +11,12 @@ public partial class App : System.Windows.Application
             args.Handled = true;
         };
         base.OnStartup(e);
+        ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown;
         var splash = new SplashWindow();
         splash.ShowDialog();
         var main = new MainWindow();
         MainWindow = main;
         main.Show();
+        ShutdownMode = System.Windows.ShutdownMode.OnMainWindowClose;
     }
 }
