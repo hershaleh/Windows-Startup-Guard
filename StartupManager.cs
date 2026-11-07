@@ -15,11 +15,15 @@ public sealed class StartupManager
     {
         var list = new List<StartupEntry>();
         ReadRunKey(Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\Run", StartupScope.CurrentUser, list);
+        ReadRunKey(Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\RunOnce", StartupScope.CurrentUser, list);
         ReadRunKey(Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\Run", StartupScope.AllUsers, list);
+        ReadRunKey(Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\RunOnce", StartupScope.AllUsers, list);
         ReadRunKey(Registry.LocalMachine, @"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Run", StartupScope.AllUsers, list);
+        ReadRunKey(Registry.LocalMachine, @"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\RunOnce", StartupScope.AllUsers, list);
         ReadFolder(Environment.GetFolderPath(Environment.SpecialFolder.Startup), StartupScope.CurrentUser, list);
         ReadFolder(Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup), StartupScope.AllUsers, list);
         AddMemoryUsage(list);
+        AddFileMetadata(list);
         return list.OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     }
 
@@ -31,7 +35,7 @@ public sealed class StartupManager
             if (key is null) return;
             foreach (var name in key.GetValueNames())
             {
-                try { list.Add(new StartupEntry { Id = "reg|" + hive.Name + "|" + path + "|" + name, Name = name, Command = key.GetValue(name)?.ToString() ?? "", Source = StartupSource.Registry, Scope = scope, Location = hive.Name + "\\" + path }); }
+                try { list.Add(new StartupEntry { Id = "reg|" + hive.Name + "|" + path + "|" + name, Name = name, Command = key.GetValue(name, null, RegistryValueOptions.DoNotExpandEnvironmentNames)?.ToString() ?? "", Source = StartupSource.Registry, Scope = scope, Location = hive.Name + "\\" + path }); }
                 catch { }
             }
         }
@@ -74,6 +78,23 @@ public sealed class StartupManager
         finally { foreach (var p in processes) p.Dispose(); }
     }
 
+    private static void AddFileMetadata(List<StartupEntry> entries)
+    {
+        foreach (var entry in entries)
+        {
+            try
+            {
+                var executable = entry.FilePath ?? ExtractExecutable(entry.Command);
+                if (string.IsNullOrWhiteSpace(executable) || !File.Exists(executable)) continue;
+                entry.ExecutablePath = executable;
+                var info = FileVersionInfo.GetVersionInfo(executable);
+                entry.Publisher = string.IsNullOrWhiteSpace(info.CompanyName) ? "Unknown" : info.CompanyName;
+                entry.FileVersion = info.FileVersion ?? "";
+            }
+            catch { entry.Publisher = "Unavailable"; }
+        }
+    }
+
     public void Disable(StartupEntry entry)
     {
         if (entry.Source == StartupSource.StartupFolder) { DisableFile(entry); return; }
@@ -85,7 +106,8 @@ public sealed class StartupManager
         var data = source.GetValue(parts[3], null, RegistryValueOptions.DoNotExpandEnvironmentNames) ?? throw new InvalidOperationException("The startup value no longer exists.");
         using var backup = Registry.CurrentUser.CreateSubKey(RegistryBackup, true)!;
         var backupName = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(entry.Id));
-        backup.SetValue(backupName, JsonSerializer.Serialize(new RegistryRecord(parts[1], parts[2], parts[3], kind.ToString(), data.ToString() ?? "")), RegistryValueKind.String);
+        var serializedData = data is byte[] bytes ? Convert.ToBase64String(bytes) : data.ToString() ?? "";
+        backup.SetValue(backupName, JsonSerializer.Serialize(new RegistryRecord(parts[1], parts[2], parts[3], kind.ToString(), serializedData, data is byte[])), RegistryValueKind.String);
         source.DeleteValue(parts[3], false);
     }
 
@@ -112,9 +134,9 @@ public sealed class StartupManager
                         var hive = record.Hive.Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) ? Registry.CurrentUser : Registry.LocalMachine;
                         using var target = hive.CreateSubKey(record.Path, true)!;
                         var kind = Enum.Parse<RegistryValueKind>(record.Kind);
-                        object value = record.Data;
-                        if (kind == RegistryValueKind.DWord && int.TryParse(record.Data, out var d)) value = d;
-                        if (kind == RegistryValueKind.QWord && long.TryParse(record.Data, out var q)) value = q;
+                        object value = record.IsBinary ? Convert.FromBase64String(record.Data) : record.Data;
+                        if (!record.IsBinary && kind == RegistryValueKind.DWord && int.TryParse(record.Data, out var d)) value = d;
+                        if (!record.IsBinary && kind == RegistryValueKind.QWord && long.TryParse(record.Data, out var q)) value = q;
                         target.SetValue(record.Name, value, kind);
                         backup.DeleteValue(name, false);
                         result.Add("Restored registry item: " + record.Name);
@@ -157,6 +179,6 @@ public sealed class StartupManager
         return count;
     }
 
-    private sealed record RegistryRecord(string Hive, string Path, string Name, string Kind, string Data);
+    private sealed record RegistryRecord(string Hive, string Path, string Name, string Kind, string Data, bool IsBinary);
     private sealed record FileRecord(string OriginalPath);
 }
