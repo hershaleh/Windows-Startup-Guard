@@ -11,5 +11,10 @@ public partial class App : System.Windows.Application
             args.Handled = true;
         };
         base.OnStartup(e);
+        var splash = new SplashWindow();
+        splash.ShowDialog();
+        var main = new MainWindow();
+        MainWindow = main;
+        main.Show();
     }
 }
