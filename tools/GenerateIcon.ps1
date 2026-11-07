@@ -34,6 +34,16 @@ $check.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
 $graphics.DrawLines($check, [System.Drawing.Point[]]@(
  [System.Drawing.Point]::new(42,49), [System.Drawing.Point]::new(47,53), [System.Drawing.Point]::new(56,43)
 ))
-$bitmap.Save($path, [System.Drawing.Imaging.ImageFormat]::Icon)
+$pngStream = [System.IO.MemoryStream]::new()
+$bitmap.Save($pngStream, [System.Drawing.Imaging.ImageFormat]::Png)
+$pngBytes = $pngStream.ToArray()
+$iconStream = [System.IO.File]::Open($path, [System.IO.FileMode]::Create)
+$writer = [System.IO.BinaryWriter]::new($iconStream)
+$writer.Write([UInt16]0); $writer.Write([UInt16]1); $writer.Write([UInt16]1)
+$writer.Write([byte]64); $writer.Write([byte]64); $writer.Write([byte]0); $writer.Write([byte]0)
+$writer.Write([UInt16]1); $writer.Write([UInt16]32)
+$writer.Write([UInt32]$pngBytes.Length); $writer.Write([UInt32]22)
+$writer.Write($pngBytes)
+$writer.Dispose(); $iconStream.Dispose(); $pngStream.Dispose()
 $check.Dispose(); $tile.Dispose(); $shield.Dispose(); $graphics.Dispose(); $bitmap.Dispose()
 Write-Host "Generated $path"
