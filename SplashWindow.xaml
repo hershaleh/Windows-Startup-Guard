@@ -25,7 +25,7 @@
     </Grid>
     <TextBlock x:Name="Title" Text="Windows Startup Guard" FontSize="29" FontWeight="Bold" Foreground="White" Opacity="0" HorizontalAlignment="Center"/>
     <TextBlock x:Name="Subtitle" Text="שליטה בטוחה. הפעלה חכמה. שקט נפשי." FontSize="15" Foreground="#B7C9EB" Opacity="0" Margin="0,12,0,30" HorizontalAlignment="Center"/>
-    <Border Width="430" Height="5" Background="#33476D" CornerRadius="3"><Border x:Name="Loading" Width="10" HorizontalAlignment="Left" Background="#75A2FF" CornerRadius="3"/></Border>
+    <Border Width="430" Height="5" Background="#33476D" CornerRadius="3"><Border x:Name="Loading" Width="10" HorizontalAlignment="Right" Background="#75A2FF" CornerRadius="3"/></Border>
     <TextBlock Text="מכין את סביבת העבודה..." Foreground="#8096BD" FontSize="11" Margin="0,12,0,0" HorizontalAlignment="Center"/>
    </StackPanel>
   </Grid>
