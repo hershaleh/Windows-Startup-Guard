@@ -1,0 +1,162 @@
+using Microsoft.Win32;
+using System.Diagnostics;
+using System.Text.Json;
+
+namespace WindowsStartupGuard;
+
+public sealed class StartupManager
+{
+    private readonly string _backupRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WindowsStartupGuard", "Backups");
+    private const string RegistryBackup = @"Software\WindowsStartupGuard\DisabledRegistry";
+
+    public StartupManager() => Directory.CreateDirectory(_backupRoot);
+
+    public List<StartupEntry> GetEntries()
+    {
+        var list = new List<StartupEntry>();
+        ReadRunKey(Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\Run", StartupScope.CurrentUser, list);
+        ReadRunKey(Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\Run", StartupScope.AllUsers, list);
+        ReadRunKey(Registry.LocalMachine, @"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Run", StartupScope.AllUsers, list);
+        ReadFolder(Environment.GetFolderPath(Environment.SpecialFolder.Startup), StartupScope.CurrentUser, list);
+        ReadFolder(Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup), StartupScope.AllUsers, list);
+        AddMemoryUsage(list);
+        return list.OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+    }
+
+    private static void ReadRunKey(RegistryKey hive, string path, StartupScope scope, List<StartupEntry> list)
+    {
+        try
+        {
+            using var key = hive.OpenSubKey(path, false);
+            if (key is null) return;
+            foreach (var name in key.GetValueNames())
+            {
+                try { list.Add(new StartupEntry { Id = "reg|" + hive.Name + "|" + path + "|" + name, Name = name, Command = key.GetValue(name)?.ToString() ?? "", Source = StartupSource.Registry, Scope = scope, Location = hive.Name + "\\" + path }); }
+                catch { }
+            }
+        }
+        catch (UnauthorizedAccessException) { }
+        catch (System.Security.SecurityException) { }
+    }
+
+    private static void ReadFolder(string folder, StartupScope scope, List<StartupEntry> list)
+    {
+        try
+        {
+            if (!Directory.Exists(folder)) return;
+            foreach (var file in Directory.EnumerateFiles(folder))
+                list.Add(new StartupEntry { Id = "file|" + file, Name = Path.GetFileNameWithoutExtension(file), Command = file, Source = StartupSource.StartupFolder, Scope = scope, Location = folder, FilePath = file });
+        }
+        catch (UnauthorizedAccessException) { }
+    }
+
+    private static string ExtractExecutable(string command)
+    {
+        var text = Environment.ExpandEnvironmentVariables(command.Trim());
+        if (text.StartsWith('"')) { var end = text.IndexOf('"', 1); return end > 1 ? text[1..end] : text.Trim('"'); }
+        var exe = text.IndexOf(".exe", StringComparison.OrdinalIgnoreCase);
+        return exe >= 0 ? text[..(exe + 4)] : text.Split(' ')[0];
+    }
+
+    private static void AddMemoryUsage(List<StartupEntry> entries)
+    {
+        var processes = Process.GetProcesses();
+        try
+        {
+            foreach (var entry in entries)
+            {
+                var name = Path.GetFileNameWithoutExtension(ExtractExecutable(entry.Command));
+                if (string.IsNullOrWhiteSpace(name)) continue;
+                entry.MemoryMb = processes.Where(p => { try { return p.ProcessName.Equals(name, StringComparison.OrdinalIgnoreCase); } catch { return false; } })
+                    .Sum(p => { try { return p.WorkingSet64; } catch { return 0L; } }) / (1024 * 1024);
+            }
+        }
+        finally { foreach (var p in processes) p.Dispose(); }
+    }
+
+    public void Disable(StartupEntry entry)
+    {
+        if (entry.Source == StartupSource.StartupFolder) { DisableFile(entry); return; }
+        var parts = entry.Id.Split('|', 4);
+        if (parts.Length != 4) throw new InvalidOperationException("Invalid registry item.");
+        var hive = parts[1].Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) ? Registry.CurrentUser : Registry.LocalMachine;
+        using var source = hive.OpenSubKey(parts[2], true) ?? throw new UnauthorizedAccessException("Cannot modify this key. Administrator rights may be required.");
+        var kind = source.GetValueKind(parts[3]);
+        var data = source.GetValue(parts[3], null, RegistryValueOptions.DoNotExpandEnvironmentNames) ?? throw new InvalidOperationException("The startup value no longer exists.");
+        using var backup = Registry.CurrentUser.CreateSubKey(RegistryBackup, true)!;
+        var backupName = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(entry.Id));
+        backup.SetValue(backupName, JsonSerializer.Serialize(new RegistryRecord(parts[1], parts[2], parts[3], kind.ToString(), data.ToString() ?? "")), RegistryValueKind.String);
+        source.DeleteValue(parts[3], false);
+    }
+
+    private void DisableFile(StartupEntry entry)
+    {
+        var file = entry.FilePath ?? throw new InvalidOperationException("Missing startup file path.");
+        if (!File.Exists(file)) throw new FileNotFoundException("Startup file no longer exists.", file);
+        var stored = Path.Combine(_backupRoot, Guid.NewGuid().ToString("N") + Path.GetExtension(file));
+        File.Move(file, stored);
+        File.WriteAllText(stored + ".json", JsonSerializer.Serialize(new FileRecord(file)));
+    }
+
+    public List<string> RestoreAll()
+    {
+        var result = new List<string>();
+        using (var backup = Registry.CurrentUser.OpenSubKey(RegistryBackup, true))
+        {
+            if (backup != null)
+                foreach (var name in backup.GetValueNames())
+                    try
+                    {
+                        var record = JsonSerializer.Deserialize<RegistryRecord>(backup.GetValue(name)?.ToString() ?? "");
+                        if (record == null) continue;
+                        var hive = record.Hive.Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) ? Registry.CurrentUser : Registry.LocalMachine;
+                        using var target = hive.CreateSubKey(record.Path, true)!;
+                        var kind = Enum.Parse<RegistryValueKind>(record.Kind);
+                        object value = record.Data;
+                        if (kind == RegistryValueKind.DWord && int.TryParse(record.Data, out var d)) value = d;
+                        if (kind == RegistryValueKind.QWord && long.TryParse(record.Data, out var q)) value = q;
+                        target.SetValue(record.Name, value, kind);
+                        backup.DeleteValue(name, false);
+                        result.Add("Restored registry item: " + record.Name);
+                    }
+                    catch (Exception ex) { result.Add("Registry restore error: " + ex.Message); }
+        }
+        foreach (var meta in Directory.EnumerateFiles(_backupRoot, "*.json"))
+            try
+            {
+                var record = JsonSerializer.Deserialize<FileRecord>(File.ReadAllText(meta));
+                var stored = meta[..^5];
+                if (record == null || !File.Exists(stored)) continue;
+                var destination = record.OriginalPath;
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                if (File.Exists(destination)) destination += ".restored";
+                File.Move(stored, destination); File.Delete(meta);
+                result.Add("Restored file: " + Path.GetFileName(destination));
+            }
+            catch (Exception ex) { result.Add("File restore error: " + ex.Message); }
+        return result;
+    }
+
+    public void StopMatchingProcesses(StartupEntry entry)
+    {
+        var name = Path.GetFileNameWithoutExtension(ExtractExecutable(entry.Command));
+        if (string.IsNullOrWhiteSpace(name)) return;
+        foreach (var process in Process.GetProcessesByName(name))
+            using (process)
+            {
+                try { process.CloseMainWindow(); if (!process.WaitForExit(1500)) process.Kill(true); }
+                catch (Exception ex) { throw new InvalidOperationException("Could not stop " + name + ": " + ex.Message, ex); }
+            }
+    }
+
+    public int DisabledBackupCount()
+    {
+        var count = 0;
+        using (var key = Registry.CurrentUser.OpenSubKey(RegistryBackup)) count += key?.GetValueNames().Length ?? 0;
+        try { count += Directory.EnumerateFiles(_backupRoot, "*.json").Count(); } catch { }
+        return count;
+    }
+
+    private sealed record RegistryRecord(string Hive, string Path, string Name, string Kind, string Data);
+    private sealed record FileRecord(string OriginalPath);
+}
