@@ -92,11 +92,14 @@
       <StackPanel><TextBlock Text="מצב הגנה" Foreground="{DynamicResource TextMuted}" FontSize="12"/><TextBlock Text="פעיל" FontSize="32" FontWeight="Bold" Foreground="#16A477" Margin="0,7,0,0"/><TextBlock Text="גיבוי לפני כל נטרול" Foreground="{DynamicResource TextMuted}" FontSize="11"/></StackPanel>
      </Border>
     </UniformGrid>
-    <Grid Grid.Row="2" Margin="0,0,0,14">
-     <StackPanel><TextBlock x:Name="SectionHeading" Text="תוכנות אתחול" FontSize="19" FontWeight="Bold" Foreground="{DynamicResource TextMain}"/><TextBlock x:Name="SectionSubtitle" Text="בדוק מה מופעל, נטרל פריטים מיותרים ושחזר בכל עת" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,4,0,0"/></StackPanel>
-     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-      <TextBox x:Name="SearchBox" Width="210" Height="38" VerticalContentAlignment="Center" Padding="10,0" BorderBrush="{DynamicResource Line}" Background="{DynamicResource ControlBg}" Foreground="{DynamicResource TextMain}" TextChanged="SearchBox_TextChanged"/>
-      <ComboBox x:Name="ScopeFilter" Width="130" Height="38" Margin="8,0,0,0" SelectedIndex="0" SelectionChanged="ScopeFilter_SelectionChanged" Background="{DynamicResource ControlBg}" Foreground="{DynamicResource TextMain}">
+    <Grid x:Name="InventoryToolbar" Grid.Row="2" Margin="0,0,0,14">
+     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+     <StackPanel Grid.Column="0" VerticalAlignment="Center"><TextBlock x:Name="SectionHeading" Text="תוכנות אתחול" FontSize="19" FontWeight="Bold" Foreground="{DynamicResource TextMain}"/><TextBlock x:Name="SectionSubtitle" Text="בדוק מה מופעל, נטרל פריטים מיותרים ושחזר בכל עת" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,4,0,0"/></StackPanel>
+     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+      <Border Background="{DynamicResource ControlBg}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="11" Height="40" Width="225" Margin="0,0,8,0">
+       <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="⌕" FontSize="21" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" HorizontalAlignment="Center"/><TextBox x:Name="SearchBox" Grid.Column="1" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource TextMain}" VerticalContentAlignment="Center" Padding="3,0,10,0" ToolTip="חיפוש לפי שם, מפרסם או נתיב" TextChanged="SearchBox_TextChanged"/></Grid>
+      </Border>
+      <ComboBox x:Name="ScopeFilter" Width="145" Height="40" Margin="0,0,8,0" SelectedIndex="0" SelectionChanged="ScopeFilter_SelectionChanged" Background="{DynamicResource ControlBg}" Foreground="{DynamicResource TextMain}">
        <ComboBoxItem Content="כל המשתמשים"/><ComboBoxItem Content="המשתמש הנוכחי"/>
       </ComboBox>
       <Button x:Name="RefreshButton" Content="↻  רענון" Click="Refresh_Click" Style="{StaticResource PrimaryButton}"/>
