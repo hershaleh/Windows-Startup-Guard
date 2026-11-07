@@ -77,7 +77,7 @@ Test-Contract 'Guide explains app remains installed' $form 'התוכנה עצמ�
 Test-Contract 'Light and dark theme toggle' $form 'ApplyTheme()'
 Test-Contract 'Light theme palette' $form 'Color.FromArgb(243, 246, 250)'
 Test-Contract 'Credit displayed in a styled panel' $form 'Name = "SummaryCard"'
-Test-Contract 'Creator image embedded' $project 'Assets\\hershaleh.jpg'
+Test-Contract 'Creator image embedded' $project 'Assets\hershaleh.jpg'
 Write-Host "Regression checks passed: $passed"
 if ($failed.Count -gt 0) { Write-Host "Regression checks failed ($($failed.Count)):"; $failed | ForEach-Object { Write-Host " - $_" }; exit 1 }
 if ($passed -lt 45) { throw "Expected at least 45 regression checks; ran $passed." }
