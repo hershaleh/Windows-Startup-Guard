@@ -146,7 +146,7 @@ internal static class AppDialog
             Foreground = Brushes.White, FontWeight = FontWeights.SemiBold,
             Cursor = System.Windows.Input.Cursors.Hand
         };
-        button.MouseEnter += (_, _) => button.BeginAnimation(OpacityProperty,
+        button.MouseEnter += (_, _) => button.BeginAnimation(UIElement.OpacityProperty,
             new DoubleAnimation(0.78, TimeSpan.FromMilliseconds(110)));
         button.MouseLeave += (_, _) => button.BeginAnimation(OpacityProperty,
             new DoubleAnimation(1, TimeSpan.FromMilliseconds(140)));
