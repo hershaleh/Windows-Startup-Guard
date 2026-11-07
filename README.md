@@ -2,7 +2,7 @@
 
 A free, open-source Windows desktop utility for discovering and managing common startup applications.
 
-## Version 0.2.0
+## Version 0.2.1
 
 - Modern dark desktop interface.
 - Hebrew / English language toggle with RTL layout.
@@ -12,7 +12,7 @@ A free, open-source Windows desktop utility for discovering and managing common 
 - Filter inventory by current user or all users.
 - Publisher/company name and file-version metadata when the executable is available.
 - Export the currently displayed inventory to UTF-8 CSV.
-- Best-effort RAM estimate for running processes matching startup executable names.
+- Best-effort RAM estimate for matching running processes (shared process memory is counted once per executable name in the dashboard total).
 - Disable selected entries with a local backup.
 - Restore registry values and Startup folder files disabled by this app.
 - Optional process-close action with an explicit confirmation.
