@@ -117,8 +117,6 @@ public sealed class MainForm : Form
                 item.FileVersion, item.ExecutablePath ?? "—", item.Command);
             _grid.Rows[rowIndex].Tag = item;
         }
-        if (filter == 1 || filter == 2)
-            foreach (DataGridViewRow row in _grid.Rows) row.Visible = filter == 1 ? ((StartupEntry)row.Tag!).IsEnabled : !((StartupEntry)row.Tag!).IsEnabled;
     }
 
     private void UpdateCards()
