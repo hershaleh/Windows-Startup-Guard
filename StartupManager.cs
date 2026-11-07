@@ -122,6 +122,8 @@ public sealed class StartupManager
         var hive = parts[1].Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) ? Registry.CurrentUser : Registry.LocalMachine;
         using var source = hive.OpenSubKey(parts[2], true) ?? throw new UnauthorizedAccessException("Cannot modify this key. Administrator rights may be required.");
         var kind = source.GetValueKind(parts[3]);
+        if (kind is not (RegistryValueKind.String or RegistryValueKind.ExpandString or RegistryValueKind.DWord or RegistryValueKind.QWord or RegistryValueKind.Binary or RegistryValueKind.MultiString))
+            throw new InvalidOperationException("This registry value type is not supported for safe backup.");
         var data = source.GetValue(parts[3], null, RegistryValueOptions.DoNotExpandEnvironmentNames) ?? throw new InvalidOperationException("The startup value no longer exists.");
         using var backup = Registry.CurrentUser.CreateSubKey(RegistryBackup, true)!;
         var backupName = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(entry.Id));
@@ -168,10 +170,7 @@ public sealed class StartupManager
                     try
                     {
                         var record = JsonSerializer.Deserialize<RegistryRecord>(backup.GetValue(name)?.ToString() ?? "");
-                        if (record == null || string.IsNullOrWhiteSpace(record.Name) ||
-                            !IsAllowedRegistryTarget(record.Hive, record.Path) ||
-                            !Enum.TryParse<RegistryValueKind>(record.Kind, out var kind) ||
-                            !Enum.IsDefined(kind) || kind == RegistryValueKind.None)
+                        if (!TryReadRegistryRecord(name, backup.GetValue(name)?.ToString(), out var record, out var kind))
                         {
                             result.Add("Registry restore skipped: invalid or unsupported backup record.");
                             continue;
@@ -282,9 +281,11 @@ public sealed class StartupManager
                     try
                     {
                         var record = JsonSerializer.Deserialize<RegistryRecord>(backup.GetValue(backupName)?.ToString() ?? "");
-                        if (record == null || string.IsNullOrWhiteSpace(record.Name) || !IsAllowedRegistryTarget(record.Hive, record.Path)) continue;
+                        if (!TryReadRegistryRecord(backupName, backup.GetValue(backupName)?.ToString(), out var record, out var kind)) continue;
                         var scope = record.Hive.Equals(Registry.LocalMachine.Name, StringComparison.OrdinalIgnoreCase) ? StartupScope.AllUsers : StartupScope.CurrentUser;
-                        var command = record.Data;
+                        var command = kind is RegistryValueKind.String or RegistryValueKind.ExpandString
+                            ? record.Data
+                            : "[Registry value: " + kind + "]";
                         var executable = TryGetExecutable(command);
                         var metadata = GetMetadata(executable);
                         items.Add(new DisabledStartupBackup(backupName, record.Name, command, StartupSource.Registry, scope, metadata.Publisher, metadata.Version, executable, 0));
@@ -325,9 +326,7 @@ public sealed class StartupManager
                     if (backup.GetValue(name) == null) continue;
                     try
                     {
-                        var record = JsonSerializer.Deserialize<RegistryRecord>(backup.GetValue(name)?.ToString() ?? "");
-                        if (record == null || string.IsNullOrWhiteSpace(record.Name) || !IsAllowedRegistryTarget(record.Hive, record.Path) ||
-                            !Enum.TryParse<RegistryValueKind>(record.Kind, out var kind) || !Enum.IsDefined(kind) || kind == RegistryValueKind.None)
+                        if (!TryReadRegistryRecord(name, backup.GetValue(name)?.ToString(), out var record, out var kind))
                         { results.Add("Registry restore skipped: invalid backup record."); continue; }
                         var hive = record.Hive.Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) ? Registry.CurrentUser : Registry.LocalMachine;
                         using var target = hive.CreateSubKey(record.Path, true)!;
@@ -369,6 +368,32 @@ public sealed class StartupManager
             catch (Exception ex) { results.Add("File restore error: " + ex.Message); }
         }
         return results;
+    }
+
+    private static bool TryReadRegistryRecord(string backupName, string? json, out RegistryRecord record, out RegistryValueKind kind)
+    {
+        record = null!;
+        kind = RegistryValueKind.None;
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<RegistryRecord>(json ?? "");
+            if (parsed == null || string.IsNullOrWhiteSpace(parsed.Name) ||
+                !IsAllowedRegistryTarget(parsed.Hive, parsed.Path) ||
+                !Enum.TryParse(parsed.Kind, out kind) || !Enum.IsDefined(kind) ||
+                kind is not (RegistryValueKind.String or RegistryValueKind.ExpandString or RegistryValueKind.DWord or RegistryValueKind.QWord or RegistryValueKind.Binary or RegistryValueKind.MultiString) ||
+                parsed.IsBinary != (kind == RegistryValueKind.Binary) ||
+                parsed.IsMultiString != (kind == RegistryValueKind.MultiString))
+                return false;
+
+            var expectedId = "reg|" + parsed.Hive + "|" + parsed.Path + "|" + parsed.Name;
+            var expectedBackupName = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(expectedId));
+            if (!string.Equals(backupName, expectedBackupName, StringComparison.Ordinal))
+                return false;
+
+            record = parsed;
+            return true;
+        }
+        catch { return false; }
     }
 
     private static string? TryGetExecutable(string command)
