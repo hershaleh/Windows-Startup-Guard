@@ -1,0 +1,45 @@
+# Windows Startup Guard
+
+A free, open-source Windows desktop utility for discovering and managing common startup applications.
+
+## Version 0.1.0
+
+- Modern dark desktop interface.
+- Hebrew / English language toggle with RTL layout.
+- Discovery of current-user and all-user Windows Run registry entries.
+- Discovery of per-user and shared Startup folder items.
+- Search by application name or startup command.
+- Best-effort RAM estimate for running processes matching startup executable names.
+- Disable selected entries with a local backup.
+- Restore registry values and Startup folder files disabled by this app.
+- Optional process-close action with an explicit confirmation.
+- No silent cleanup, no automatic deletion, and no external services.
+
+## Safety notes
+
+The first release intentionally limits its changes to common Run registry values and Startup folder items. It does not disable Windows services, drivers, scheduled tasks, security products, or system components. Disabling machine-wide registry entries may require administrator permissions. Backups are stored under `%LOCALAPPDATA%\\WindowsStartupGuard\\Backups` and in the current user's registry hive.
+
+RAM is an estimate: the app sums the working-set memory of processes whose process name matches the executable name in a startup command. This is not a precise measurement of memory attributable to that startup entry.
+
+## Build
+
+Requires Windows and the .NET 10 SDK.
+
+```powershell
+dotnet build WindowsStartupGuard.csproj -c Release
+dotnet run --project WindowsStartupGuard.csproj
+```
+
+## Planned
+
+- Show disabled entries and offer per-item restore.
+- Scheduled tasks and service inventory in a read-only advanced view.
+- Publisher and digital-signature information.
+- Startup impact history and launch-delay measurements.
+- Optional logon-time re-check (opt-in only).
+- Import/export of configuration and restore profiles.
+- Portable and self-contained release packages.
+
+## License
+
+MIT
