@@ -78,6 +78,13 @@ Test-Contract 'Light and dark theme toggle' $form 'ApplyTheme()'
 Test-Contract 'Light theme palette' $form 'Color.FromArgb(243, 246, 250)'
 Test-Contract 'Credit displayed in a styled panel' $form 'Name = "SummaryCard"'
 Test-Contract 'Creator image embedded' $project 'Assets\hershaleh.jpg'
+
+Test-Contract 'Formatted guide uses RichTextBox' $form 'new RichTextBox'
+Test-Contract 'Guide headings have distinct typography' $form 'SelectionFont = new Font("Segoe UI Semibold", 13, FontStyle.Bold)'
+Test-Contract 'Guide text uses theme-aware foreground' $form 'ForeColor = _textColor'
+Test-Contract 'Header actions share aligned flow layout' $form 'FlowDirection = FlowDirection.RightToLeft'
+Test-Contract 'Header action buttons have equal widths' $form '_guideButton.Size = new Size(112, 36)'
+
 Write-Host "Regression checks passed: $passed"
 if ($failed.Count -gt 0) { Write-Host "Regression checks failed ($($failed.Count)):"; $failed | ForEach-Object { Write-Host " - $_" }; exit 1 }
 if ($passed -lt 45) { throw "Expected at least 45 regression checks; ran $passed." }
