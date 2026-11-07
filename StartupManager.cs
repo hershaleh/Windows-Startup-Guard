@@ -107,8 +107,18 @@ public sealed class StartupManager
         using var backup = Registry.CurrentUser.CreateSubKey(RegistryBackup, true)!;
         var backupName = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(entry.Id));
         var serializedData = data is byte[] bytes ? Convert.ToBase64String(bytes) : data is string[] strings ? JsonSerializer.Serialize(strings) : data.ToString() ?? "";
+        if (backup.GetValue(backupName) != null)
+            throw new InvalidOperationException("A backup for this startup item already exists.");
         backup.SetValue(backupName, JsonSerializer.Serialize(new RegistryRecord(parts[1], parts[2], parts[3], kind.ToString(), serializedData, data is byte[], data is string[])), RegistryValueKind.String);
-        source.DeleteValue(parts[3], false);
+        try
+        {
+            source.DeleteValue(parts[3], false);
+        }
+        catch
+        {
+            backup.DeleteValue(backupName, false);
+            throw;
+        }
     }
 
     private void DisableFile(StartupEntry entry)
@@ -116,8 +126,17 @@ public sealed class StartupManager
         var file = entry.FilePath ?? throw new InvalidOperationException("Missing startup file path.");
         if (!File.Exists(file)) throw new FileNotFoundException("Startup file no longer exists.", file);
         var stored = Path.Combine(_backupRoot, Guid.NewGuid().ToString("N") + Path.GetExtension(file));
-        File.Move(file, stored);
-        File.WriteAllText(stored + ".json", JsonSerializer.Serialize(new FileRecord(file)));
+        var metadata = stored + ".json";
+        File.WriteAllText(metadata, JsonSerializer.Serialize(new FileRecord(file)));
+        try
+        {
+            File.Move(file, stored);
+        }
+        catch
+        {
+            try { File.Delete(metadata); } catch { }
+            throw;
+        }
     }
 
     public List<string> RestoreAll()
@@ -133,6 +152,11 @@ public sealed class StartupManager
                         if (record == null) continue;
                         var hive = record.Hive.Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) ? Registry.CurrentUser : Registry.LocalMachine;
                         using var target = hive.CreateSubKey(record.Path, true)!;
+                        if (target.GetValue(record.Name, null, RegistryValueOptions.DoNotExpandEnvironmentNames) != null)
+                        {
+                            result.Add("Restore skipped; registry value already exists: " + record.Name);
+                            continue;
+                        }
                         var kind = Enum.Parse<RegistryValueKind>(record.Kind);
                         object value = record.IsBinary ? Convert.FromBase64String(record.Data) : record.IsMultiString ? JsonSerializer.Deserialize<string[]>(record.Data) ?? [] : record.Data;
                         if (!record.IsBinary && !record.IsMultiString && kind == RegistryValueKind.DWord && int.TryParse(record.Data, out var d)) value = d;
@@ -151,7 +175,15 @@ public sealed class StartupManager
                 if (record == null || !File.Exists(stored)) continue;
                 var destination = record.OriginalPath;
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-                if (File.Exists(destination)) destination += ".restored";
+                if (File.Exists(destination))
+                {
+                    var directory = Path.GetDirectoryName(destination)!;
+                    var name = Path.GetFileNameWithoutExtension(destination);
+                    var extension = Path.GetExtension(destination);
+                    var index = 1;
+                    do { destination = Path.Combine(directory, name + ".restored-" + index++ + extension); }
+                    while (File.Exists(destination));
+                }
                 File.Move(stored, destination); File.Delete(meta);
                 result.Add("Restored file: " + Path.GetFileName(destination));
             }
@@ -166,7 +198,13 @@ public sealed class StartupManager
         foreach (var process in Process.GetProcessesByName(name))
             using (process)
             {
-                try { process.CloseMainWindow(); if (!process.WaitForExit(1500)) process.Kill(true); }
+                try
+                {
+                    process.CloseMainWindow();
+                    if (!process.WaitForExit(3000))
+                        throw new InvalidOperationException("The application did not close after a graceful close request. It was left running to avoid losing work.");
+                }
+                catch (InvalidOperationException) { throw; }
                 catch (Exception ex) { throw new InvalidOperationException("Could not stop " + name + ": " + ex.Message, ex); }
             }
     }
