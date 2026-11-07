@@ -117,6 +117,8 @@ public sealed class StartupManager
         if (entry.Source == StartupSource.StartupFolder) { DisableFile(entry); return; }
         var parts = entry.Id.Split('|', 4);
         if (parts.Length != 4) throw new InvalidOperationException("Invalid registry item.");
+        if (!IsAllowedRegistryTarget(parts[1], parts[2]) || string.IsNullOrWhiteSpace(parts[3]))
+            throw new InvalidOperationException("The registry startup target is not on the allowed list.");
         var hive = parts[1].Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) ? Registry.CurrentUser : Registry.LocalMachine;
         using var source = hive.OpenSubKey(parts[2], true) ?? throw new UnauthorizedAccessException("Cannot modify this key. Administrator rights may be required.");
         var kind = source.GetValueKind(parts[3]);
@@ -166,7 +168,14 @@ public sealed class StartupManager
                     try
                     {
                         var record = JsonSerializer.Deserialize<RegistryRecord>(backup.GetValue(name)?.ToString() ?? "");
-                        if (record == null) continue;
+                        if (record == null || string.IsNullOrWhiteSpace(record.Name) ||
+                            !IsAllowedRegistryTarget(record.Hive, record.Path) ||
+                            !Enum.TryParse<RegistryValueKind>(record.Kind, out var kind) ||
+                            !Enum.IsDefined(kind) || kind == RegistryValueKind.None)
+                        {
+                            result.Add("Registry restore skipped: invalid or unsupported backup record.");
+                            continue;
+                        }
                         var hive = record.Hive.Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) ? Registry.CurrentUser : Registry.LocalMachine;
                         using var target = hive.CreateSubKey(record.Path, true)!;
                         if (target.GetValue(record.Name, null, RegistryValueOptions.DoNotExpandEnvironmentNames) != null)
@@ -174,7 +183,6 @@ public sealed class StartupManager
                             result.Add("Restore skipped; registry value already exists: " + record.Name);
                             continue;
                         }
-                        var kind = Enum.Parse<RegistryValueKind>(record.Kind);
                         object value = record.IsBinary ? Convert.FromBase64String(record.Data) : record.IsMultiString ? JsonSerializer.Deserialize<string[]>(record.Data) ?? [] : record.Data;
                         if (!record.IsBinary && !record.IsMultiString && kind == RegistryValueKind.DWord && int.TryParse(record.Data, out var d)) value = d;
                         if (!record.IsBinary && !record.IsMultiString && kind == RegistryValueKind.QWord && long.TryParse(record.Data, out var q)) value = q;
@@ -197,7 +205,11 @@ public sealed class StartupManager
             {
                 var record = JsonSerializer.Deserialize<FileRecord>(File.ReadAllText(meta));
                 var stored = meta[..^5];
-                if (record == null || !File.Exists(stored)) continue;
+                if (record == null || !IsAllowedStartupFolderPath(record.OriginalPath) || !File.Exists(stored))
+                {
+                    result.Add("File restore skipped: invalid backup path or missing backup file.");
+                    continue;
+                }
                 var destination = record.OriginalPath;
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                 if (File.Exists(destination))
@@ -265,6 +277,43 @@ public sealed class StartupManager
         using (var key = Registry.CurrentUser.OpenSubKey(RegistryBackup)) count += key?.GetValueNames().Length ?? 0;
         try { count += Directory.EnumerateFiles(_backupRoot, "*.json").Count(); } catch { }
         return count;
+    }
+
+    private static bool IsAllowedRegistryTarget(string hive, string path)
+    {
+        var validHive = hive.Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) ||
+                        hive.Equals(Registry.LocalMachine.Name, StringComparison.OrdinalIgnoreCase);
+        if (!validHive || string.IsNullOrWhiteSpace(path)) return false;
+
+        string[] allowed =
+        [
+            @"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+            @"Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
+            @"Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run",
+            @"Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnce"
+        ];
+        return allowed.Contains(path, StringComparer.OrdinalIgnoreCase) &&
+               !(hive.Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) &&
+                 path.StartsWith(@"Software\\WOW6432Node", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsAllowedStartupFolderPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        try
+        {
+            var fullPath = Path.GetFullPath(path);
+            var folders = new[]
+            {
+                Environment.GetFolderPath(Environment.SpecialFolder.Startup),
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup)
+            }.Where(x => !string.IsNullOrWhiteSpace(x)).Select(Path.GetFullPath);
+
+            return folders.Any(folder =>
+                fullPath.StartsWith(folder.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar,
+                    StringComparison.OrdinalIgnoreCase));
+        }
+        catch { return false; }
     }
 
     private sealed record RegistryRecord(string Hive, string Path, string Name, string Kind, string Data, bool IsBinary, bool IsMultiString = false);
