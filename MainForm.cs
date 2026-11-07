@@ -95,6 +95,13 @@ public sealed class MainForm : Form
         card.Controls.AddRange([h, value, d]); return card;
     }
 
+    private Button MakeButton(string text, bool primary, EventHandler click)
+    {
+        var button = new Button();
+        ConfigureButton(button, text, primary, click);
+        return button;
+    }
+
     private void ConfigureButton(Button button, string text, bool primary, EventHandler click)
     {
         button.Text = text; button.Size = new Size(primary ? 164 : 136, 36); button.Margin = new Padding(7, 0, 0, 0);
@@ -205,7 +212,8 @@ public sealed class MainForm : Form
     private static string CsvEscape(string value)
     {
         value ??= "";
-        if (value.Length > 0 && (value[0] is '=' or '+' or '-' or '@' or '\t' or '\r'))
+        var firstMeaningful = value.TrimStart().FirstOrDefault();
+        if (firstMeaningful is '=' or '+' or '-' or '@')
             value = "'" + value;
         return "\"" + value.Replace("\"", "\"\"") + "\"";
     }
