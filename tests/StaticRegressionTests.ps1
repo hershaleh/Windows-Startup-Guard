@@ -70,7 +70,7 @@ Test-Contract 'Single-file publish' $workflow '-p:PublishSingleFile=true'
 Test-Contract 'In-app guide action' $form 'ShowGuide()'
 Test-Contract 'Guide explains safe disable and restore' $form 'נטרול נבחרים'
 Test-Contract 'Creator credit link' $form 'https://mitmachim.top/user/%D7%94%D7%A2%D7%A8%D7%A9%D7%9C%D7%94'
-Test-Contract 'Embedded creator image' $project 'Assets\\hershaleh.jpg'
+Test-Contract 'Embedded creator image' $project 'Assets\hershaleh.jpg'
 Write-Host "Regression checks passed: $passed"
 if ($failed.Count -gt 0) { Write-Host "Regression checks failed ($($failed.Count)):"; $failed | ForEach-Object { Write-Host " - $_" }; exit 1 }
 if ($passed -lt 45) { throw "Expected at least 45 regression checks; ran $passed." }
