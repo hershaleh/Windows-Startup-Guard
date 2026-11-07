@@ -28,7 +28,7 @@ RAM is an estimate: the app sums the working-set memory of processes whose proce
 
 ## Build
 
-Requires Windows and the .NET 10 SDK.
+Building requires Windows and the .NET 10 SDK. The published win-x64 package is self-contained and does not require a separate .NET Desktop Runtime installation.
 
 ```powershell
 dotnet build WindowsStartupGuard.csproj -c Release
