@@ -138,7 +138,7 @@
       </DataGrid.Columns>
      </DataGrid>
     </Border>
-    <Grid Grid.Row="4" Margin="0,16,0,0">
+    <Grid x:Name="ActionsPanel" Grid.Row="4" Margin="0,16,0,0">
      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
      <TextBlock Grid.Column="0" x:Name="StatusText" Text="מוכן" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
      <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Left">
