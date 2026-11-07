@@ -67,7 +67,7 @@
   </Border>
   <ScrollViewer x:Name="ContentScroll" Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
    <Grid Margin="30,24,30,28">
-    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="430"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <Grid Grid.Row="0" Margin="0,0,0,24">
      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
      <StackPanel Grid.Column="0" VerticalAlignment="Center">
@@ -99,10 +99,30 @@
       <ComboBox x:Name="ScopeFilter" Width="130" Height="38" Margin="8,0,0,0" SelectedIndex="0" SelectionChanged="ScopeFilter_SelectionChanged" Background="{DynamicResource ControlBg}" Foreground="{DynamicResource TextMain}">
        <ComboBoxItem Content="כל המשתמשים"/><ComboBoxItem Content="המשתמש הנוכחי"/>
       </ComboBox>
-      <Button x:Name="RefreshButton" Content="רענון" Click="Refresh_Click" Margin="8,0,0,0"/>
+      <Button x:Name="RefreshButton" Content="↻  רענון" Click="Refresh_Click" Style="{StaticResource PrimaryButton}"/>
      </StackPanel>
     </Grid>
-    <Border Grid.Row="3" Background="{DynamicResource PanelBg}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="16" Padding="8">
+    <Border x:Name="DashboardDetails" Grid.Row="2" Grid.RowSpan="3" Visibility="Collapsed" Background="{DynamicResource PanelBg}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="18" Padding="28" Margin="0,0,0,10">
+     <StackPanel>
+      <TextBlock Text="סקירה כללית" FontSize="21" FontWeight="Bold" Foreground="{DynamicResource TextMain}"/>
+      <TextBlock Text="כל מה שחשוב לדעת על תוכנות האתחול שלך, במקום אחד." FontSize="13" Foreground="{DynamicResource TextMuted}" Margin="0,6,0,24"/>
+      <Grid>
+       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+       <Border Grid.Column="0" Background="{DynamicResource GridAltBg}" CornerRadius="14" Padding="20" Margin="0,0,8,0">
+        <StackPanel><TextBlock Text="מה אפשר לעשות כאן?" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextMain}"/>
+         <TextBlock Text="• לצפות בכל התוכנות שעולות עם Windows&#10;• לחפש לפי שם, מפרסם או נתיב&#10;• לנטרל פריטים לא נחוצים ולשמור גיבוי&#10;• לשחזר פריטים שנוטרלו בעבר" FontSize="13" LineHeight="27" TextWrapping="Wrap" Foreground="{DynamicResource TextMuted}" Margin="0,12,0,0"/>
+        </StackPanel>
+       </Border>
+       <Border Grid.Column="1" Background="{DynamicResource GridAltBg}" CornerRadius="14" Padding="20" Margin="8,0,0,0">
+        <StackPanel><TextBlock Text="המלצות לשימוש בטוח" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextMain}"/>
+         <TextBlock Text="• אל תנטרל פריט שאינך מזהה לפני שבדקת אותו.&#10;• שינויי אתחול נשמרים בגיבוי מקומי.&#10;• פריטים של כלל המשתמשים עשויים לדרוש הרשאות מנהל.&#10;• ניתן לחזור בכל עת למסך תוכנות האתחול." FontSize="13" LineHeight="27" TextWrapping="Wrap" Foreground="{DynamicResource TextMuted}" Margin="0,12,0,0"/>
+        </StackPanel>
+       </Border>
+      </Grid>
+      <Button x:Name="GoToStartupButton" Content="מעבר לניהול תוכנות אתחול  ←" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Margin="0,24,0,0" Click="Startup_Click"/>
+     </StackPanel>
+    </Border>
+    <Border x:Name="InventoryPanel" Grid.Row="3" Background="{DynamicResource PanelBg}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="16" Padding="8" MinHeight="430">
      <DataGrid x:Name="StartupGrid" SelectionMode="Extended" SelectionUnit="FullRow" AlternationCount="2" CanUserResizeRows="False">
       <DataGrid.Columns>
        <DataGridTextColumn Header="שם התוכנה" Binding="{Binding Name}" Width="1.35*"/>
