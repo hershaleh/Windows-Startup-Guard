@@ -41,6 +41,7 @@ public sealed class StartupManager
         }
         catch (UnauthorizedAccessException) { }
         catch (System.Security.SecurityException) { }
+        catch (IOException) { }
     }
 
     private static void ReadFolder(string folder, StartupScope scope, List<StartupEntry> list)
@@ -52,6 +53,7 @@ public sealed class StartupManager
                 list.Add(new StartupEntry { Id = "file|" + file, Name = Path.GetFileNameWithoutExtension(file), Command = file, Source = StartupSource.StartupFolder, Scope = scope, Location = folder, FilePath = file });
         }
         catch (UnauthorizedAccessException) { }
+        catch (IOException) { }
     }
 
     private static string ExtractExecutable(string command)
@@ -67,15 +69,30 @@ public sealed class StartupManager
         var processes = Process.GetProcesses();
         try
         {
+            var memoryByName = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+            foreach (var process in processes)
+            {
+                try
+                {
+                    var name = process.ProcessName;
+                    if (!memoryByName.ContainsKey(name)) memoryByName[name] = 0;
+                    memoryByName[name] += process.WorkingSet64;
+                }
+                catch { }
+            }
+
             foreach (var entry in entries)
             {
-                var name = Path.GetFileNameWithoutExtension(ExtractExecutable(entry.Command));
-                if (string.IsNullOrWhiteSpace(name)) continue;
-                entry.MemoryMb = processes.Where(p => { try { return p.ProcessName.Equals(name, StringComparison.OrdinalIgnoreCase); } catch { return false; } })
-                    .Sum(p => { try { return p.WorkingSet64; } catch { return 0L; } }) / (1024 * 1024);
+                try
+                {
+                    var name = Path.GetFileNameWithoutExtension(ExtractExecutable(entry.Command));
+                    if (!string.IsNullOrWhiteSpace(name) && memoryByName.TryGetValue(name, out var bytes))
+                        entry.MemoryMb = bytes / (1024 * 1024);
+                }
+                catch { entry.MemoryMb = 0; }
             }
         }
-        finally { foreach (var p in processes) p.Dispose(); }
+        finally { foreach (var process in processes) process.Dispose(); }
     }
 
     private static void AddFileMetadata(List<StartupEntry> entries)
