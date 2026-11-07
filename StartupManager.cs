@@ -271,6 +271,128 @@ public sealed class StartupManager
         }
     }
 
+    public List<DisabledStartupBackup> GetDisabledBackups()
+    {
+        var items = new List<DisabledStartupBackup>();
+        try
+        {
+            using var backup = Registry.CurrentUser.OpenSubKey(RegistryBackup);
+            if (backup != null)
+                foreach (var backupName in backup.GetValueNames())
+                    try
+                    {
+                        var record = JsonSerializer.Deserialize<RegistryRecord>(backup.GetValue(backupName)?.ToString() ?? "");
+                        if (record == null || string.IsNullOrWhiteSpace(record.Name) || !IsAllowedRegistryTarget(record.Hive, record.Path)) continue;
+                        var scope = record.Hive.Equals(Registry.LocalMachine.Name, StringComparison.OrdinalIgnoreCase) ? StartupScope.AllUsers : StartupScope.CurrentUser;
+                        var command = record.Data;
+                        var executable = TryGetExecutable(command);
+                        var metadata = GetMetadata(executable);
+                        items.Add(new DisabledStartupBackup(backupName, record.Name, command, StartupSource.Registry, scope, metadata.Publisher, metadata.Version, executable, 0));
+                    }
+                    catch { }
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException) { }
+
+        try
+        {
+            foreach (var meta in Directory.EnumerateFiles(_backupRoot, "*.json"))
+                try
+                {
+                    var record = JsonSerializer.Deserialize<FileRecord>(File.ReadAllText(meta));
+                    var stored = meta[..^5];
+                    if (record == null || !IsAllowedStartupFolderPath(record.OriginalPath) || !File.Exists(stored)) continue;
+                    var executable = record.OriginalPath;
+                    var metadata = GetMetadata(executable);
+                    items.Add(new DisabledStartupBackup(meta, Path.GetFileNameWithoutExtension(executable), executable, StartupSource.StartupFolder,
+                        IsWithin(executable, Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup)) ? StartupScope.AllUsers : StartupScope.CurrentUser,
+                        metadata.Publisher, metadata.Version, executable, 0));
+                }
+                catch { }
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException) { }
+        return items.OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+    }
+
+    public List<string> RestoreSelected(IEnumerable<string> backupIds)
+    {
+        var wanted = backupIds.ToHashSet(StringComparer.Ordinal);
+        var results = new List<string>();
+        using (var backup = Registry.CurrentUser.OpenSubKey(RegistryBackup, true))
+        {
+            if (backup != null)
+                foreach (var name in wanted.Where(x => !x.EndsWith(".json", StringComparison.OrdinalIgnoreCase)))
+                {
+                    if (backup.GetValue(name) == null) continue;
+                    try
+                    {
+                        var record = JsonSerializer.Deserialize<RegistryRecord>(backup.GetValue(name)?.ToString() ?? "");
+                        if (record == null || string.IsNullOrWhiteSpace(record.Name) || !IsAllowedRegistryTarget(record.Hive, record.Path) ||
+                            !Enum.TryParse<RegistryValueKind>(record.Kind, out var kind) || !Enum.IsDefined(kind) || kind == RegistryValueKind.None)
+                        { results.Add("Registry restore skipped: invalid backup record."); continue; }
+                        var hive = record.Hive.Equals(Registry.CurrentUser.Name, StringComparison.OrdinalIgnoreCase) ? Registry.CurrentUser : Registry.LocalMachine;
+                        using var target = hive.CreateSubKey(record.Path, true)!;
+                        if (target.GetValue(record.Name, null, RegistryValueOptions.DoNotExpandEnvironmentNames) != null)
+                        { results.Add("Restore skipped; registry value already exists: " + record.Name); continue; }
+                        object value = record.IsBinary ? Convert.FromBase64String(record.Data) : record.IsMultiString ? JsonSerializer.Deserialize<string[]>(record.Data) ?? [] : record.Data;
+                        if (!record.IsBinary && !record.IsMultiString && kind == RegistryValueKind.DWord && int.TryParse(record.Data, out var d)) value = d;
+                        if (!record.IsBinary && !record.IsMultiString && kind == RegistryValueKind.QWord && long.TryParse(record.Data, out var q)) value = q;
+                        target.SetValue(record.Name, value, kind);
+                        backup.DeleteValue(name, false);
+                        results.Add("Restored registry item: " + record.Name);
+                    }
+                    catch (Exception ex) { results.Add("Registry restore error: " + ex.Message); }
+                }
+        }
+        foreach (var meta in wanted.Where(x => x.EndsWith(".json", StringComparison.OrdinalIgnoreCase)))
+        {
+            if (!File.Exists(meta)) continue;
+            try
+            {
+                var record = JsonSerializer.Deserialize<FileRecord>(File.ReadAllText(meta));
+                var stored = meta[..^5];
+                if (record == null || !IsAllowedStartupFolderPath(record.OriginalPath) || !File.Exists(stored))
+                { results.Add("File restore skipped: invalid backup record."); continue; }
+                var destination = record.OriginalPath;
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                if (File.Exists(destination))
+                {
+                    var dir = Path.GetDirectoryName(destination)!;
+                    var baseName = Path.GetFileNameWithoutExtension(destination);
+                    var ext = Path.GetExtension(destination);
+                    var n = 1;
+                    do { destination = Path.Combine(dir, baseName + ".restored-" + n++ + ext); } while (File.Exists(destination));
+                }
+                File.Move(stored, destination);
+                File.Delete(meta);
+                results.Add("Restored file: " + Path.GetFileName(destination));
+            }
+            catch (Exception ex) { results.Add("File restore error: " + ex.Message); }
+        }
+        return results;
+    }
+
+    private static string? TryGetExecutable(string command)
+    {
+        try { var value = ExtractExecutable(command); return File.Exists(value) ? value : null; } catch { return null; }
+    }
+
+    private static (string Publisher, string Version) GetMetadata(string? path)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return ("—", "");
+            var info = FileVersionInfo.GetVersionInfo(path);
+            return (string.IsNullOrWhiteSpace(info.CompanyName) ? "Unknown" : info.CompanyName, info.FileVersion ?? "");
+        }
+        catch { return ("—", ""); }
+    }
+
+    private static bool IsWithin(string path, string folder)
+    {
+        try { return !string.IsNullOrWhiteSpace(folder) && Path.GetFullPath(path).StartsWith(Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase); }
+        catch { return false; }
+    }
+
     public int DisabledBackupCount()
     {
         var count = 0;
@@ -324,6 +446,7 @@ public sealed class StartupManager
         catch { return false; }
     }
 
+    public sealed record DisabledStartupBackup(string BackupId, string Name, string Command, StartupSource Source, StartupScope Scope, string Publisher, string FileVersion, string? ExecutablePath, long MemoryMb);
     private sealed record RegistryRecord(string Hive, string Path, string Name, string Kind, string Data, bool IsBinary, bool IsMultiString = false);
     private sealed record FileRecord(string OriginalPath);
 }
