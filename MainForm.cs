@@ -65,7 +65,11 @@ public sealed class MainForm : Form
         ConfigureButton(_stopButton, "■  Stop process", false, (_, _) => StopSelected());
         ConfigureButton(_restoreButton, "↶  Restore backups", false, (_, _) => RestoreBackups());
         ConfigureButton(_exportButton, "⇩ Export CSV", false, (_, _) => ExportCsv());
-        toolbar.Controls.AddRange([_refreshButton, _disableButton, _stopButton, _restoreButton, _exportButton]);
+        var restoreSelectedButton = MakeButton(_hebrew ? "שחזור נבחר" : "Restore selected", false, (_, _) => RestoreSelected());
+        restoreSelectedButton.Name = "RestoreSelectedButton";
+        var restoreSelectedButton = MakeButton("Restore selected", false, (_, _) => RestoreSelected());
+        restoreSelectedButton.Name = "RestoreSelectedButton";
+        toolbar.Controls.AddRange([_refreshButton, _disableButton, _stopButton, restoreSelectedButton, _restoreButton, _exportButton]);
         root.Controls.Add(toolbar, 0, 2);
 
         _grid.Dock = DockStyle.Fill; _grid.BackgroundColor = _surface; _grid.BorderStyle = BorderStyle.None; _grid.EnableHeadersVisualStyles = false;
@@ -79,7 +83,9 @@ public sealed class MainForm : Form
         _grid.Columns.Add("Name", "Application"); _grid.Columns.Add("Publisher", "Publisher"); _grid.Columns.Add("Status", "Status");
         _grid.Columns.Add("Memory", "RAM (MB)"); _grid.Columns.Add("Source", "Source"); _grid.Columns.Add("Scope", "Scope");
         _grid.Columns.Add("Version", "Version"); _grid.Columns.Add("Executable", "Executable path"); _grid.Columns.Add("Command", "Startup command");
-        _grid.Columns[0].FillWeight = 95; _grid.Columns[1].FillWeight = 105; _grid.Columns[7].FillWeight = 150; _grid.Columns[8].FillWeight = 170;
+        _grid.Columns.Add("Restore", "Restore");
+        _grid.Columns[0].FillWeight = 95; _grid.Columns[1].FillWeight = 105; _grid.Columns[7].FillWeight = 150; _grid.Columns[8].FillWeight = 170; _grid.Columns[9].FillWeight = 65;
+        _grid.Columns[9].Visible = false;
         root.Controls.Add(_grid, 0, 3);
 
         var status = new StatusStrip { BackColor = _background, ForeColor = Color.Silver, Dock = DockStyle.Bottom };
@@ -128,11 +134,14 @@ public sealed class MainForm : Form
         _cardDetails[0].Text = _hebrew ? "רישום ותיקיות אתחול" : "Run, RunOnce and Startup folders";
         _cardDetails[1].Text = _hebrew ? "זיכרון תהליכים תואמים" : "Working set of matching processes";
         _cardDetails[2].Text = _hebrew ? "פריטים שניתן לשחזר" : "Items that can be restored";
+        _grid.Columns[9].HeaderText = _hebrew ? "שחזור" : "Restore";
         _refreshButton.Text = _hebrew ? "↻  רענון" : "↻  Refresh";
         _disableButton.Text = _hebrew ? "⏸  נטרול נבחרים" : "⏸  Disable selected";
         _stopButton.Text = _hebrew ? "■  סגירת תהליך" : "■  Stop process";
         _restoreButton.Text = _hebrew ? "↶  שחזור גיבויים" : "↶  Restore backups";
         _exportButton.Text = _hebrew ? "⇩ ייצוא CSV" : "⇩ Export CSV";
+        var restoreSelectedButton = Controls.Find("RestoreSelectedButton", true).OfType<Button>().FirstOrDefault();
+        if (restoreSelectedButton != null) restoreSelectedButton.Text = _hebrew ? "שחזור נבחר" : "Restore selected";
         string[] headers = _hebrew
             ? ["תוכנה", "מפרסם", "מצב", "זיכרון (MB)", "מקור", "היקף", "גרסה", "נתיב קובץ", "פקודת אתחול"]
             : ["Application", "Publisher", "Status", "RAM (MB)", "Source", "Scope", "Version", "Executable path", "Startup command"];
@@ -154,6 +163,8 @@ public sealed class MainForm : Form
     private void RenderRows()
     {
         _grid.Rows.Clear(); var query = _search.Text.Trim(); var filter = _filter.SelectedIndex;
+        var disabled = _manager.GetDisabledBackups();
+        var disabledRows = disabled.Select(x => new { x.Name, x.Command, x.Source, x.Scope, x.Publisher, x.FileVersion, x.ExecutablePath, x.MemoryMb, x.BackupId }).ToList();
         foreach (var item in _entries.Where(x => (query.Length == 0 || x.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || x.Command.Contains(query, StringComparison.OrdinalIgnoreCase) || x.Publisher.Contains(query, StringComparison.OrdinalIgnoreCase)) &&
             (filter == 0 || (filter == 1 && x.Scope == StartupScope.CurrentUser) || (filter == 2 && x.Scope == StartupScope.AllUsers))))
         {
@@ -162,6 +173,16 @@ public sealed class MainForm : Form
                 item.Scope == StartupScope.AllUsers ? (_hebrew ? "כל המשתמשים" : "All users") : (_hebrew ? "המשתמש הנוכחי" : "Current user"),
                 item.FileVersion, item.ExecutablePath ?? "—", item.Command);
             _grid.Rows[rowIndex].Tag = item;
+        }
+        foreach (var item in disabledRows.Where(x => query.Length == 0 || x.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || x.Command.Contains(query, StringComparison.OrdinalIgnoreCase)))
+        {
+            if (filter != 0 && ((filter == 1 && item.Scope != StartupScope.CurrentUser) || (filter == 2 && item.Scope != StartupScope.AllUsers))) continue;
+            var index = _grid.Rows.Add(item.Name, item.Publisher, _hebrew ? "מושבת" : "Disabled", item.MemoryMb,
+                item.Source == StartupSource.Registry ? (_hebrew ? "רישום מערכת" : "Registry") : (_hebrew ? "תיקיית אתחול" : "Startup folder"),
+                item.Scope == StartupScope.AllUsers ? (_hebrew ? "כל המשתמשים" : "All users") : (_hebrew ? "המשתמש הנוכחי" : "Current user"),
+                item.FileVersion, item.ExecutablePath ?? "—", item.Command, item.BackupId);
+            _grid.Rows[index].Tag = item;
+            _grid.Rows[index].DefaultCellStyle.ForeColor = Color.FromArgb(156, 163, 175);
         }
     }
 
@@ -180,7 +201,7 @@ public sealed class MainForm : Form
 
     private void DisableSelected()
     {
-        var selected = Selected();
+        var selected = Selected().Where(x => x.IsEnabled).ToList();
         if (selected.Count == 0) { MessageBox.Show(_hebrew ? "בחר פריטים בטבלה." : "Select items in the table."); return; }
         if (MessageBox.Show(_hebrew ? "לנטרל את הפריטים שנבחרו? יישמר גיבוי לשחזור." : "Disable selected startup items? A backup will be kept for restore.", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
         var errors = new List<string>();
@@ -190,9 +211,28 @@ public sealed class MainForm : Form
 
     private void StopSelected()
     {
-        var selected = Selected(); if (selected.Count != 1) { MessageBox.Show(_hebrew ? "בחר פריט אחד בלבד." : "Select exactly one item."); return; }
+        var selected = Selected().Where(x => x.IsEnabled).ToList(); if (selected.Count != 1) { MessageBox.Show(_hebrew ? "בחר פריט אחד בלבד." : "Select exactly one item."); return; }
         if (MessageBox.Show(_hebrew ? "לנסות לסגור את התהליך המתאים? שמור עבודה פתוחה תחילה." : "Try to stop the matching process? Save open work first.", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
         try { _manager.StopMatchingProcesses(selected[0]); _status.Text = _hebrew ? "נשלחה בקשת סגירה" : "Stop request sent"; } catch (Exception ex) { ShowError(ex); }
+    }
+
+    private void RestoreSelected()
+    {
+        var selected = _grid.SelectedRows.Cast<DataGridViewRow>().Select(row => row.Tag).ToList();
+        var backupIds = selected.Select(item => item?.GetType().GetProperty("BackupId")?.GetValue(item)?.ToString()).Where(id => !string.IsNullOrWhiteSpace(id)).Cast<string>().Distinct().ToList();
+        if (backupIds.Count == 0)
+        {
+            MessageBox.Show(_hebrew ? "בחר פריט מושבת אחד או יותר." : "Select one or more disabled items.");
+            return;
+        }
+        if (MessageBox.Show(_hebrew ? $"לשחזר {backupIds.Count} פריטים שנבחרו?" : $"Restore {backupIds.Count} selected items?", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+        try
+        {
+            var results = _manager.RestoreSelected(backupIds);
+            RefreshEntries();
+            MessageBox.Show(string.Join(Environment.NewLine, results.Take(30)), _hebrew ? "תוצאות שחזור" : "Restore results");
+        }
+        catch (Exception ex) { ShowError(ex); }
     }
 
     private void RestoreBackups()
