@@ -97,7 +97,7 @@ Test-Contract 'Error log stores exception details' (Get-Content (Join-Path $PSSc
 Test-Contract 'Report log redacts secrets' (Get-Content (Join-Path $PSScriptRoot '..\ErrorReporter.cs') -Raw) '[redacted]'
 Test-Contract 'Report requires user confirmation on GitHub' (Get-Content (Join-Path $PSScriptRoot '..\ErrorReporter.cs') -Raw) 'Nothing is sent until you click Submit'
 Test-Contract 'Branded splash screen' (Get-Content (Join-Path $PSScriptRoot '..\SplashScreen.cs') -Raw) 'Windows Startup Guard'
-Test-Contract 'Splash screen shown on startup' (Get-Content (Join-Path $PSScriptRoot '..\Program.cs') -Raw) 'splash.ShowDialog()'
+Test-Contract 'Animated WPF splash shown before main window' (Get-Content (Join-Path $PSScriptRoot '..\App.xaml.cs') -Raw) 'splash.ShowDialog()'
 Test-Contract 'Executable icon configured' $project '<ApplicationIcon>Assets\WindowsStartupGuard.ico</ApplicationIcon>'
 Test-Contract 'Icon generated before build' $project 'GenerateApplicationIcon'
 Test-Contract 'Icon generator script exists' (Get-Content (Join-Path $PSScriptRoot '..\tools\GenerateIcon.ps1') -Raw) 'WindowsStartupGuard.ico'
