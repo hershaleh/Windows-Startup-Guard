@@ -66,7 +66,7 @@ internal static class ErrorReporter
             text = text.Replace(Environment.UserName, "[user]", StringComparison.OrdinalIgnoreCase);
             text = Regex.Replace(text, @"(?i)(authorization\s*[:=]\s*bearer\s+)\S+", "$1[redacted]");
             text = Regex.Replace(text, @"(?i)(token|password|secret|api[_-]?key)(\s*[:=]\s*)[^\s;]+", "$1$2[redacted]");
-            return text.Length > 4500 ? text[^4500..] : text;
+            return text.Length > 1200 ? text[^1200..] : text;
         }
         catch { return "Log file could not be read."; }
     }
