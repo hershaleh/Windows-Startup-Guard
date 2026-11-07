@@ -109,7 +109,7 @@ public partial class MainWindow : System.Windows.Window
 
     private void Export_Click(object sender, System.Windows.RoutedEventArgs e)
     {
-        var dialog = new SaveFileDialog { Filter = "CSV files (*.csv)|*.csv", FileName = "startup-inventory.csv" };
+        var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "CSV files (*.csv)|*.csv", FileName = "startup-inventory.csv" };
         if (dialog.ShowDialog() != true) return;
         try
         {
