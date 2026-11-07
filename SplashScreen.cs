@@ -4,7 +4,7 @@ namespace WindowsStartupGuard;
 
 internal sealed class SplashScreen : Form
 {
-    private readonly System.Windows.Forms.Timer _timer = new() { Interval = 1150 };
+    private readonly System.Windows.Forms.Timer _timer = new() { Interval = 1900 };
 
     public SplashScreen()
     {
