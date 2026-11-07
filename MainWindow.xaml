@@ -6,7 +6,7 @@
  WindowStartupLocation="CenterScreen" Background="{DynamicResource AppBg}" FontFamily="Segoe UI"
  FlowDirection="RightToLeft" Loaded="Window_Loaded">
  <Window.Resources>
-  <Style x:Key="PrimaryButton" TargetType="Button">
+  <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
    <Setter Property="Background" Value="{DynamicResource Accent}"/><Setter Property="Foreground" Value="White"/>
    <Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Padding" Value="17,10"/>
   </Style>
@@ -116,8 +116,9 @@
      </DataGrid>
     </Border>
     <Grid Grid.Row="4" Margin="0,16,0,0">
-     <TextBlock x:Name="StatusText" Text="מוכן" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
-     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+     <TextBlock Grid.Column="0" x:Name="StatusText" Text="מוכן" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Left">
       <Button x:Name="DisableButton" Content="נטרול נבחרים" Style="{StaticResource PrimaryButton}" Click="Disable_Click" Margin="0,0,8,0"/>
       <Button x:Name="StopButton" Content="סגירת תהליך" Click="Stop_Click" Margin="0,0,8,0"/>
       <Button x:Name="RestoreSelectedButton" Content="שחזור נבחרים" Click="RestoreSelected_Click" Margin="0,0,8,0"/>
