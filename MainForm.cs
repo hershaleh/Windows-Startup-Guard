@@ -22,6 +22,9 @@ public sealed class MainForm : Form
     private readonly Button _stopButton = new();
     private readonly Button _restoreButton = new();
     private readonly Button _exportButton = new();
+    private readonly Button _guideButton = new();
+    private readonly PictureBox _creditImage = new();
+    private readonly LinkLabel _creditLink = new();
     private bool _hebrew = true;
     private List<StartupEntry> _entries = [];
     private readonly Color _background = Color.FromArgb(17, 24, 39);
@@ -46,7 +49,16 @@ public sealed class MainForm : Form
         _subtitle.Text = "Take control of what starts with Windows"; _subtitle.ForeColor = Color.FromArgb(156, 163, 175); _subtitle.AutoSize = true; _subtitle.Location = new Point(3, 49);
         var language = MakeButton("עברית / EN", false, (_, _) => { _hebrew = !_hebrew; ApplyLanguage(); });
         language.Size = new Size(112, 36); language.Anchor = AnchorStyles.Top | AnchorStyles.Right; language.Location = new Point(900, 10);
-        header.Controls.AddRange([title, _subtitle, language]); header.Resize += (_, _) => language.Left = header.ClientSize.Width - language.Width;
+        ConfigureButton(_guideButton, "מדריך", true, (_, _) => ShowGuide());
+        _guideButton.Size = new Size(92, 36); _guideButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        _creditImage.Size = new Size(44, 44); _creditImage.SizeMode = PictureBoxSizeMode.Zoom; _creditImage.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        using (var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WindowsStartupGuard.Assets.hershaleh.jpg"))
+            if (stream != null) _creditImage.Image = Image.FromStream(stream);
+        _creditLink.AutoSize = true; _creditLink.LinkColor = Color.FromArgb(147, 197, 253); _creditLink.Text = "הערשלה";
+        _creditLink.LinkClicked += (_, _) => Process.Start(new ProcessStartInfo("https://mitmachim.top/user/%D7%94%D7%A2%D7%A8%D7%A9%D7%9C%D7%94") { UseShellExecute = true });
+        header.Controls.AddRange([title, _subtitle, language, _guideButton, _creditImage, _creditLink]);
+        header.Resize += (_, _) => { language.Left = header.ClientSize.Width - language.Width; _guideButton.Left = language.Left - _guideButton.Width - 8; _creditImage.Left = _guideButton.Left - _creditImage.Width - 18; _creditImage.Top = 7; _creditLink.Left = _creditImage.Left - _creditLink.Width - 7; _creditLink.Top = 22; };
+        header.PerformLayout();
         root.Controls.Add(header, 0, 0);
 
         var cards = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, BackColor = _background };
@@ -138,6 +150,8 @@ public sealed class MainForm : Form
         _stopButton.Text = _hebrew ? "■  סגירת תהליך" : "■  Stop process";
         _restoreButton.Text = _hebrew ? "↶  שחזור גיבויים" : "↶  Restore backups";
         _exportButton.Text = _hebrew ? "⇩ ייצוא CSV" : "⇩ Export CSV";
+        _guideButton.Text = _hebrew ? "מדריך" : "Guide";
+        _creditLink.Text = _hebrew ? "הערשלה" : "Hershaleh";
         var restoreSelectedButton = Controls.Find("RestoreSelectedButton", true).OfType<Button>().FirstOrDefault();
         if (restoreSelectedButton != null) restoreSelectedButton.Text = _hebrew ? "שחזור נבחר" : "Restore selected";
         string[] headers = _hebrew
@@ -150,6 +164,25 @@ public sealed class MainForm : Form
         _privilegeStatus.Text = isAdministrator
             ? (_hebrew ? "הרשאות מנהל" : "Administrator")
             : (_hebrew ? "משתמש רגיל — שינוי פריטי כל המשתמשים עשוי לדרוש מנהל" : "Standard user — changing all-user items may require admin");
+    }
+
+    private void ShowGuide()
+    {
+        var guide = new Form { Text = _hebrew ? "מדריך — מגן אתחול Windows" : "Guide — Windows Startup Guard",
+            StartPosition = FormStartPosition.CenterParent, Size = new Size(780, 680), MinimumSize = new Size(620, 500),
+            BackColor = _background, ForeColor = Color.White, Font = new Font("Segoe UI", 10),
+            RightToLeft = _hebrew ? RightToLeft.Yes : RightToLeft.No, RightToLeftLayout = _hebrew, ShowInTaskbar = false };
+        var content = new TextBox { Multiline = true, ReadOnly = true, WordWrap = true, ScrollBars = ScrollBars.Vertical,
+            Dock = DockStyle.Fill, BorderStyle = BorderStyle.None, BackColor = _surface, ForeColor = Color.FromArgb(229, 231, 235),
+            Font = new Font("Segoe UI", 10.5f), Padding = new Padding(16), RightToLeft = _hebrew ? RightToLeft.Yes : RightToLeft.No };
+        content.Text = _hebrew
+            ? "מדריך שימוש\r\n\r\nמה מופיע בטבלה?\r\nכל שורה היא פריט שעשוי לפעול בעת הכניסה ל-Windows. הסריקה כוללת את מפתחות Run ו-RunOnce ברישום ואת תיקיות האתחול של המשתמש ושל כלל המשתמשים.\r\n\r\nהעמודות\r\n• תוכנה — שם הפריט.\r\n• מפרסם וגרסה — מידע מפרטי הקובץ; אין בכך אימות חתימה דיגיטלית או הוכחה שהמפרסם אמין.\r\n• מצב — מופעל: הפריט נמצא במקור האתחול. מושבת: הפריט הוסר ממקור האתחול ונשמר גיבוי שניתן לנסות לשחזר.\r\n• זיכרון — אומדן זיכרון של תהליכים בעלי שם תואם, לא מדידה מדויקת של הפריט עצמו.\r\n• מקור — רישום מערכת או תיקיית אתחול.\r\n• היקף — המשתמש הנוכחי או כלל המשתמשים.\r\n• נתיב ופקודה — המקום והפקודה שמהם הפריט מופעל. היזהר מפקודות שאינך מזהה.\r\n\r\nהכפתורים\r\n• רענון — סריקה מחדש.\r\n• נטרול נבחרים — מסיר את הפריטים המסומנים ממקור האתחול ושומר גיבוי. הפעולה דורשת אישור ואינה מסירה את התוכנה מהמחשב.\r\n• סגירת תהליך — מבקש סגירה רגילה של התהליך המתאים לפריט יחיד. שמור עבודה פתוחה תחילה; אין סגירה כפויה.\r\n• שחזור נבחר — משחזר רק גיבויים שסומנו בטבלה.\r\n• שחזור גיבויים — מנסה לשחזר את כל הגיבויים. יעדים קיימים אינם נדרסים.\r\n• ייצוא CSV — שומר את השורות המוצגות בקובץ לגיליון אלקטרוני.\r\n\r\nחיפוש וסינון\r\nהקלד שם, מפרסם או פקודה בתיבת החיפוש. הרשימה הנפתחת מסננת לפי היקף המשתמשים.\r\n\r\nהרשאות ובטיחות\r\nשינוי פריטי אתחול של כלל המשתמשים עשוי לדרוש הרשאות מנהל. אל תנטרל פריט שאינך מבין: רכיבי אבטחה, גיבוי, מנהלי התקנים ורכיבי מערכת עלולים להיפגע. מומלץ לייצא רשימה לפני שינויים.\r\n\r\nהיקף הסריקה\r\nהגרסה הנוכחית סורקת Run/RunOnce ותיקיות אתחול בלבד. היא אינה סורקת שירותי Windows או משימות מתוזמנות."
+            : "USER GUIDE\r\n\r\nWhat is listed?\r\nEach row is an item that may launch when you sign in to Windows. The scan covers Run and RunOnce registry keys and the current-user and all-users Startup folders.\r\n\r\nColumns\r\n• Application — item name.\r\n• Publisher and version — file metadata only; this does not verify a digital signature or prove trustworthiness.\r\n• Status — Enabled means present in startup. Disabled means removed from startup and backed up for possible restoration.\r\n• RAM — approximate memory used by processes with a matching name, not an exact measurement for the startup item.\r\n• Source — registry or Startup folder.\r\n• Scope — current user or all users.\r\n• Path and command — where and how the item launches. Be careful with commands you do not recognize.\r\n\r\nToolbar buttons\r\n• Refresh — scan again.\r\n• Disable selected — removes selected items from startup and keeps a backup. Confirmation is required; this does not uninstall the app.\r\n• Stop process — requests a normal close for the process matching one selected item. Save work first; no forced termination is used.\r\n• Restore selected — restores only selected backups.\r\n• Restore backups — attempts to restore all backups. Existing targets are never overwritten.\r\n• Export CSV — saves the visible rows to a spreadsheet file.\r\n\r\nSearch and filters\r\nSearch by name, publisher, or command. The dropdown filters by user scope.\r\n\r\nPermissions and safety\r\nChanging all-users entries may require administrator rights. Do not disable items you do not understand: security, backup, driver, and system components may be affected. Export the inventory before making changes.\r\n\r\nScan coverage\r\nThis version scans Run/RunOnce and Startup folders only. It does not scan Windows services or scheduled tasks.";
+        var close = MakeButton(_hebrew ? "סגירה" : "Close", true, (_, _) => guide.Close());
+        close.Dock = DockStyle.Bottom; close.Height = 42;
+        var panel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(16), BackColor = _background };
+        panel.Controls.Add(content); panel.Controls.Add(close); guide.Controls.Add(panel); guide.AcceptButton = close;
+        guide.ShowDialog(this);
     }
 
     private void RefreshEntries()
