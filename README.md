@@ -2,10 +2,10 @@
 
 A free, open-source Windows desktop utility for discovering and managing common startup applications.
 
-## Version 0.2.1
+## Version 0.2.2
 
 - Modern dark desktop interface.
-- Hebrew / English language toggle with RTL layout.
+- Hebrew / English interface with RTL / LTR layout, including translated controls, inventory columns, and status labels.
 - Discovery of current-user and all-user Windows Run and RunOnce registry entries.
 - Discovery of per-user and shared Startup folder items.
 - Search by application name, publisher, or startup command.
